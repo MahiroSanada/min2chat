@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>min2 Chat - 自動シード 200ms + 管理削除連打対応</title>
+<meta name="color-scheme" content="light dark" />
+<style>
+:root{ --bg:#0f1221; --panel:#171a2b; --text:#e8ebff; --muted:#a7b0d6; --border:#252a45; --bubble:#1c2040; --bubble-self:#2a356b; --shadow:0 10px 30px rgba(0,0,0,0.35); --admin-bg:#3b2850; --admin-text:#ffdbe1; }
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;padding:0}
+body{font-family:system-ui, "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;background:radial-gradient(1200px 600px at -10% -10%, rgba(108,140,255,0.12), transparent 60%),var(--bg);color:var(--text)}
+.app{display:flex;flex-direction:column;height:100dvh;max-width:980px;margin:0 auto}
+header.appbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:12px;background:linear-gradient(180deg, rgba(23,26,43,0.9), rgba(23,26,43,0.75));border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:28px;height:28px;border-radius:8px;background:conic-gradient(from 210deg,#6c8cff,#a46cff,#4cd38a,#6c8cff)}
+.title{font-weight:700}
+.status{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+.toolbar{display:flex;gap:8px}
+button.btn{appearance:none;border:1px solid var(--border);color:var(--text);background:linear-gradient(180deg,#171a2b,#121527);border-radius:10px;padding:8px 12px;cursor:pointer}
+button.btn:active{transform:translateY(1px)}
+main{flex:1;overflow:auto;padding:14px}
+.notice{color:var(--muted);text-align:center;margin-bottom:12px}
+.messages{display:flex;flex-direction:column;gap:10px;padding-bottom:16px}
+.msg{display:flex;gap:10px;max-width:92%}
+.msg.self{align-self:flex-end;flex-direction:row-reverse}
+.avatar{width:36px;height:36px;border-radius:10px;background:#1a1f3b;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;color:#b9c3ff}
+.bubble{background:var(--bubble);border:1px solid var(--border);border-radius:14px;padding:10px 12px;min-width:120px;box-shadow:var(--shadow)}
+.self .bubble{background:var(--bubble-self);border-color:#36407a}
+.meta{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;margin-bottom:6px}
+.name{font-weight:700;color:#d6dcff}
+.text{white-space:pre-wrap;word-break:break-word;line-height:1.5}
+.reactions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.react{display:inline-flex;align-items:center;gap:6px;padding:6px 8px;border-radius:30px;border:1px solid var(--border);background:linear-gradient(180deg,#181c35,#131731);cursor:pointer}
+.footer{position:sticky;bottom:0;background:linear-gradient(180deg, rgba(23,26,43,0.75), rgba(18,21,39,0.9));border-top:1px solid var(--border);padding:12px}
+.row{display:flex;gap:10px;align-items:flex-start}
+.input{flex:1;display:flex;padding:8px;gap:8px;border:1px solid var(--border);border-radius:12px;background:linear-gradient(180deg,#151936,#10132b)}
+textarea{flex:1;resize:none;border:0;outline:0;background:transparent;color:var(--text);padding:4px 2px;min-height:44px;max-height:240px}
+.small{font-size:12px;padding:6px 8px}
+.toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:#121631;color:#e6e9ff;border:1px solid var(--border);padding:10px 14px;border-radius:12px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1;pointer-events:auto}
+.kv{font-size:12px;color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:8px}
+.input-inline{display:flex;gap:8px;align-items:center}
+.input-inline input[type="number"]{width:80px;padding:6px;border-radius:8px;border:1px solid var(--border);background:#0f1330;color:var(--text)}
+.input-inline input[type="text"]{padding:6px;border-radius:8px;border:1px solid var(--border);background:#0f1330;color:var(--text)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="appbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"></div>
+      <div class="title">min2 Chat</div>
+    </div>
+    <div class="status">
+      <div id="connText" class="kv">接続: -</div>
+    </div>
+    <div class="toolbar">
+      <button id="openUser" class="btn">プロフィール</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="notice" class="notice">
+      自動シード回転: 200ms。全メッセージに対して各メッセージ最大 50,000 回の 😡 を付与しつつ、同時に 👍 を 1ms 間隔で付与します。管理削除（pass: min0001）を連打する機能も追加しました。サーバ負荷に注意してください。
+    </div>
+    <div id="messages" class="messages" aria-live="polite" aria-busy="true"></div>
+  </main>
+
+  <div class="footer">
+    <div class="row">
+      <div class="input">
+        <textarea id="messageInput" placeholder="メッセージを入力..."></textarea>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button id="sendBtn" class="btn">送信</button>
+        <button id="autoKeepBtn" class="btn">連打（保持）開始</button>
+        <button id="angerAllBtn" class="btn">全メッセージに😡+👍（開始/停止）</button>
+      </div>
+    </div>
+
+    <div style="margin-top:8px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <div class="kv">seed: <span id="seedDisplay"></span></div>
+      <div class="kv">進捗: <span id="angerProgress">0 / 0</span></div>
+      <div class="kv">状態: <span id="angerState">停止</span></div>
+
+      <!-- 自動削除連打コントロール -->
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+        <label class="kv">管理パスワード</label>
+        <input id="adminPassInput" type="text" value="min0001" style="width:120px;padding:6px;border-radius:6px;border:1px solid var(--border);background:#0f1330;color:var(--text)" />
+        <label class="kv">間隔(ms)</label>
+        <input id="autoClearInterval" type="number" min="10" value="1000" style="width:80px;padding:6px;border-radius:6px;border:1px solid var(--border);background:#0f1330;color:var(--text)" />
+        <button id="autoClearBtn" class="btn small">削除連打開始</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<!-- プロフィールモーダル（シード表示・手動保存可） -->
+<div id="userModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);align-items:center;justify-content:center">
+  <div style="background:#141834;padding:16px;border-radius:12px;width:min(520px,96%);margin:auto">
+    <h3 style="margin:0 0 8px 0">プロフィール / シード</h3>
+    <div class="field">
+      <label class="kv">表示名（任意）</label>
+      <input id="username" type="text" placeholder="名前を入力" />
+      <label class="kv">seed（手動で上書きして保存できます）</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="seed" type="text" style="flex:1" />
+        <button id="genSeedBtn" class="btn small">新規生成</button>
+        <button id="saveSeedBtn" class="btn small">保存</button>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+        <button id="userCancel" class="btn">閉じる</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+<script>
+(() => {
+  'use strict';
+
+  const SERVER_URL = 'https://one.linco.cl';
+  const el = {
+    messages: document.getElementById('messages'),
+    input: document.getElementById('messageInput'),
+    sendBtn: document.getElementById('sendBtn'),
+    autoKeepBtn: document.getElementById('autoKeepBtn'),
+    angerAllBtn: document.getElementById('angerAllBtn'),
+    seedDisplay: document.getElementById('seedDisplay'),
+    angerProgress: document.getElementById('angerProgress'),
+    angerState: document.getElementById('angerState'),
+    toast: document.getElementById('toast'),
+    openUser: document.getElementById('openUser'),
+    userModal: document.getElementById('userModal'),
+    username: document.getElementById('username'),
+    seedInput: document.getElementById('seed'),
+    userCancel: document.getElementById('userCancel'),
+    genSeedBtn: document.getElementById('genSeedBtn'),
+    saveSeedBtn: document.getElementById('saveSeedBtn'),
+    connText: document.getElementById('connText'),
+    adminPassInput: document.getElementById('adminPassInput'),
+    autoClearInterval: document.getElementById('autoClearInterval'),
+    autoClearBtn: document.getElementById('autoClearBtn')
+  };
+
+  const showToast = (msg, ms = 1800) => {
+    el.toast.textContent = msg;
+    el.toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=> el.toast.classList.remove('show'), ms);
+  };
+
+  const storage = {
+    get name(){ return localStorage.getItem('chat_username') || ''; },
+    set name(v){ localStorage.setItem('chat_username', v); },
+    get seed(){ return localStorage.getItem('chat_seed') || ''; },
+    set seed(v){ localStorage.setItem('chat_seed', v); }
+  };
+
+  function makeSeed(){
+    if (crypto && crypto.getRandomValues){
+      const arr = new Uint8Array(16);
+      crypto.getRandomValues(arr);
+      return [...arr].map(x=>x.toString(16).padStart(2,'0')).join('');
+    }
+    return Math.random().toString(36).slice(2) + Date.now().toString(36);
+  }
+
+  // --- 自動シード回転（200ms）かつ保存 ---
+  let mySeed = storage.seed || makeSeed();
+  storage.seed = mySeed;
+  el.seedDisplay.textContent = mySeed;
+  if (el.seedInput) el.seedInput.value = mySeed;
+
+  const SEED_ROTATE_INTERVAL_MS = 200; // 200ms 自動回転
+  let seedRotateId = setInterval(() => {
+    mySeed = makeSeed();
+    storage.seed = mySeed; // 常に保存
+    el.seedDisplay.textContent = mySeed;
+    if (el.seedInput) el.seedInput.value = mySeed;
+    if (socket && socket.connected) socket.emit('seedUpdated', { newSeed: mySeed });
+  }, SEED_ROTATE_INTERVAL_MS);
+
+  // --- Socket.IO 基本 ---
+  let socket = null;
+  function setupSocket(){
+    socket = io(SERVER_URL, { transports:['polling'] });
+    socket.on('connect', ()=> { el.connText.textContent = 'オンライン'; });
+    socket.on('disconnect', ()=> { el.connText.textContent = '切断'; });
+    socket.on('init', payload => {
+      if (Array.isArray(payload.messages)) {
+        messages = payload.messages;
+        renderAll();
+      }
+    });
+    socket.on('newMessage', msg => {
+      if (!isDuplicate(msg)) {
+        messages.push(msg);
+        el.messages.appendChild(renderMessage(msg, messages.length-1));
+        if (isAtBottom()) scrollToBottom(true);
+      }
+    });
+    socket.on('updateReaction', ({ messageId, reactions }) => {
+      if (typeof messageId === 'number' && messages[messageId]) {
+        messages[messageId].reactions = reactions || {};
+        const wrap = el.messages.querySelector(`.msg[data-index="${messageId}"]`);
+        if (wrap) {
+          const bar = wrap.querySelector('.reactions');
+          if (bar) {
+            bar.innerHTML = '';
+            const cur = messages[messageId].reactions || {};
+            Object.keys(cur).sort((a,b)=> (cur[b]||0)-(cur[a]||0)).forEach(k=>{
+              const chip = document.createElement('span'); chip.className='react'; chip.textContent = `${k} ${cur[k]}`; bar.appendChild(chip);
+            });
+          }
+        }
+      }
+    });
+  }
+
+  // --- メッセージ管理とレンダリング ---
+  let messages = [];
+  const sanitize = s => String(s||'').replace(/\u0000/g,'');
+  const initials = name => (name||'?').trim().slice(0,2).toUpperCase();
+  const isAtBottom = () => {
+    const m = document.querySelector('main');
+    return m.scrollHeight - m.scrollTop - m.clientHeight < 80;
+  };
+  const scrollToBottom = smooth => {
+    const m = document.querySelector('main');
+    m.scrollTo({ top: m.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+  };
+  const isDuplicate = msg => messages.some(m => m.seed===msg.seed && m.time===msg.time && m.message===msg.message && m.username===msg.username);
+
+  function renderAll(){
+    el.messages.innerHTML = '';
+    messages.forEach((m,i)=> el.messages.appendChild(renderMessage(m,i)));
+    el.messages.parentElement.setAttribute('aria-busy','false');
+    scrollToBottom(false);
+  }
+
+  function renderMessage(msg, index){
+    const isSelf = msg.seed === mySeed;
+    const wrap = document.createElement('div');
+    wrap.className = 'msg' + (isSelf ? ' self' : '');
+    wrap.dataset.index = index;
+
+    const avatar = document.createElement('div'); avatar.className='avatar'; avatar.textContent = initials(msg.username);
+    const bubble = document.createElement('div'); bubble.className='bubble';
+    const meta = document.createElement('div'); meta.className='meta';
+    const nameEl = document.createElement('span'); nameEl.className='name'; nameEl.textContent = sanitize(msg.username || 'unknown');
+    meta.appendChild(nameEl);
+    const timeEl = document.createElement('span'); timeEl.className='kv'; timeEl.style.marginLeft='8px'; timeEl.textContent = sanitize(msg.time || '');
+    meta.appendChild(timeEl);
+
+    const textEl = document.createElement('div'); textEl.className='text'; textEl.textContent = sanitize(msg.message || '');
+
+    const reactions = document.createElement('div'); reactions.className='reactions';
+    const cur = msg.reactions || {};
+    Object.keys(cur).sort((a,b)=> (cur[b]||0)-(cur[a]||0)).forEach(k=>{
+      const chip = document.createElement('span'); chip.className='react'; chip.textContent = `${k} ${cur[k]}`; reactions.appendChild(chip);
+    });
+
+    bubble.append(meta, textEl, reactions);
+    wrap.append(avatar, bubble);
+    return wrap;
+  }
+
+  async function fetchMessages(){
+    try {
+      const res = await fetch(`${SERVER_URL}/api/messages`, { cache:'no-store' });
+      if (!res.ok) throw 0;
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        messages = data;
+        renderAll();
+      }
+    } catch {
+      showToast('メッセージ取得失敗');
+    }
+  }
+
+  async function sendMessageOnce(payload) {
+    try {
+      const res = await fetch(`${SERVER_URL}/api/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw await res.json();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // ----------------------------
+  // 連打（保持）機能（自分が入力したテキストを消さずに繰り返し送信）
+  // ----------------------------
+  let autoKeepIntervalId = null;
+  const AUTO_KEEP_INTERVAL_MS = 300;
+
+  async function startAutoKeep() {
+    if (autoKeepIntervalId) return;
+    const text = el.input.value || '';
+    if (!text.trim()) { showToast('送信するテキストを入力してください'); return; }
+    el.autoKeepBtn.textContent = '連打（保持）停止';
+    autoKeepIntervalId = setInterval(async () => {
+      const payload = { username: storage.name || '名無し', message: text, time: new Date().toISOString(), seed: mySeed };
+      const ok = await sendMessageOnce(payload);
+      if (!ok) showToast('送信に失敗しました');
+    }, AUTO_KEEP_INTERVAL_MS);
+  }
+
+  function stopAutoKeep() {
+    if (!autoKeepIntervalId) return;
+    clearInterval(autoKeepIntervalId);
+    autoKeepIntervalId = null;
+    el.autoKeepBtn.textContent = '連打（保持）開始';
+  }
+
+  el.autoKeepBtn.addEventListener('click', () => {
+    if (autoKeepIntervalId) stopAutoKeep(); else startAutoKeep();
+  });
+
+  el.sendBtn.addEventListener('click', async () => {
+    const text = el.input.value || '';
+    if (!text.trim()) return;
+    const payload = { username: storage.name || '名無し', message: text, time: new Date().toISOString(), seed: mySeed };
+    el.sendBtn.disabled = true;
+    const ok = await sendMessageOnce(payload);
+    el.sendBtn.disabled = false;
+    if (ok) {
+      el.input.value = '';
+    } else {
+      showToast('送信に失敗しました');
+    }
+  });
+
+  el.input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      el.sendBtn.click();
+    }
+  });
+
+  // ----------------------------
+  // 全メッセージに同時進行で 😡 と 👍 を付与する機能
+  // ----------------------------
+  const PER_MESSAGE_MAX = 50000; // 各メッセージに対する上限（😡）
+  const GOOD_INTERVAL_MS = 1;    // 👍 を付ける間隔（1ms）
+  const ANGER_INTERVAL_MS = 1;   // 😡 を付ける間隔（1ms）
+  let angerRunning = false;
+  let angerController = { stop: false };
+
+  function updateAngerProgress(sent, total) {
+    el.angerProgress.textContent = `${sent.toLocaleString()} / ${total.toLocaleString()}`;
+  }
+
+  function emitReaction(messageId, reaction) {
+    if (socket && socket.connected) {
+      socket.emit('updateReaction', { messageId, reaction });
+    } else {
+      fetch(`${SERVER_URL}/api/reaction`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId, reaction, seed: mySeed })
+      }).catch(()=>{});
+    }
+  }
+
+  async function startAngerAndGoodAll() {
+    if (angerRunning) return;
+    if (!messages.length) { showToast('メッセージがありません'); return; }
+    angerRunning = true;
+    angerController.stop = false;
+    el.angerState.textContent = '実行中';
+
+    const totalToSend = PER_MESSAGE_MAX * messages.length * 2; // 😡 と 👍 の合計
+    let sentTotal = 0;
+    updateAngerProgress(sentTotal, totalToSend);
+
+    for (let i = 0; i < messages.length; i++) {
+      if (angerController.stop) break;
+
+      let angerCount = 0;
+      let goodCount = 0;
+
+      const angerLoop = (async () => {
+        while (angerCount < PER_MESSAGE_MAX && !angerController.stop) {
+          emitReaction(i, '😡');
+          angerCount++;
+          sentTotal++;
+          if (sentTotal % 100 === 0) updateAngerProgress(sentTotal, totalToSend);
+          await sleep(ANGER_INTERVAL_MS);
+        }
+      })();
+
+      const goodLoop = (async () => {
+        while (goodCount < PER_MESSAGE_MAX && !angerController.stop) {
+          emitReaction(i, '👍');
+          goodCount++;
+          sentTotal++;
+          if (sentTotal % 100 === 0) updateAngerProgress(sentTotal, totalToSend);
+          await sleep(GOOD_INTERVAL_MS);
+        }
+      })();
+
+      await Promise.all([angerLoop, goodLoop]);
+
+      updateAngerProgress(sentTotal, totalToSend);
+    }
+
+    angerRunning = false;
+    el.angerState.textContent = '停止';
+    el.angerAllBtn.textContent = '全メッセージに😡+👍（開始/停止）';
+    showToast('全メッセージへの付与処理が完了または停止しました', 2000);
+  }
+
+  function stopAngerAll() {
+    if (!angerRunning) return;
+    angerController.stop = true;
+    el.angerState.textContent = '停止中';
+  }
+
+  el.angerAllBtn.addEventListener('click', () => {
+    if (!angerRunning) {
+      const total = PER_MESSAGE_MAX * Math.max(1, messages.length) * 2;
+      updateAngerProgress(0, total);
+      el.angerAllBtn.textContent = '全メッセージに😡+👍（停止）';
+      startAngerAndGoodAll();
+    } else {
+      stopAngerAll();
+      el.angerAllBtn.textContent = '全メッセージに😡+👍（開始/停止）';
+    }
+  });
+
+  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+  // ----------------------------
+  // 自動削除連打機能（/api/pass に管理パスワードを送信）
+  // - adminPassInput に "min0001" をデフォルトで入れています
+  // - autoClearBtn で開始/停止
+  // - 間隔は autoClearInterval（ms）
+  // ----------------------------
+  let autoClearIntervalId = null;
+  let autoClearSentCount = 0;
+  let autoClearTotalAttempts = 0;
+
+  async function sendClearRequest(pass) {
+    try {
+      const res = await fetch(`${SERVER_URL}/api/pass`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-requested-with': 'fetch' },
+        body: JSON.stringify({ password: pass })
+      });
+      const j = await res.json().catch(()=>({}));
+      return { ok: res.ok, message: j && j.message ? j.message : null };
+    } catch {
+      return { ok: false, message: null };
+    }
+  }
+
+  function startAutoClear() {
+    if (autoClearIntervalId) return;
+    const pass = (el.adminPassInput.value || '').trim() || 'min0001';
+    let intervalMs = Math.max(10, Number(el.autoClearInterval.value) || 1000);
+    el.autoClearBtn.textContent = '削除連打停止';
+    autoClearSentCount = 0;
+    autoClearTotalAttempts = 0;
+
+    autoClearIntervalId = setInterval(async () => {
+      const res = await sendClearRequest(pass);
+      autoClearTotalAttempts++;
+      if (res.ok) {
+        autoClearSentCount++;
+        // show a small toast every few successes to avoid spamming
+        if (autoClearSentCount % 5 === 0) showToast(`削除リクエスト成功: ${autoClearSentCount} 回`);
+      } else {
+        // show occasional failure notice
+        if (autoClearTotalAttempts % 5 === 0) showToast('削除リクエストが拒否されましたまたは失敗しました');
+      }
+    }, intervalMs);
+  }
+
+  function stopAutoClear() {
+    if (!autoClearIntervalId) return;
+    clearInterval(autoClearIntervalId);
+    autoClearIntervalId = null;
+    el.autoClearBtn.textContent = '削除連打開始';
+    showToast(`削除連打を停止しました（試行: ${autoClearTotalAttempts}, 成功: ${autoClearSentCount}）`, 2500);
+  }
+
+  el.autoClearBtn.addEventListener('click', () => {
+    if (autoClearIntervalId) stopAutoClear(); else startAutoClear();
+  });
+
+  // ----------------------------
+  // プロフィールモーダル（シード手動保存）
+  // ----------------------------
+  el.openUser.addEventListener('click', () => {
+    el.userModal.style.display = 'flex';
+    el.username.value = storage.name || '';
+    el.seedInput.value = mySeed;
+  });
+  el.userCancel.addEventListener('click', () => el.userModal.style.display = 'none');
+
+  el.genSeedBtn.addEventListener('click', () => {
+    el.seedInput.value = makeSeed();
+  });
+
+  el.saveSeedBtn.addEventListener('click', () => {
+    const v = (el.seedInput.value || '').trim();
+    if (!v) { showToast('シードを入力または生成してください'); return; }
+    mySeed = v;
+    storage.seed = mySeed;
+    el.seedDisplay.textContent = mySeed;
+    showToast('シードを保存しました');
+    if (socket && socket.connected) socket.emit('seedUpdated', { newSeed: mySeed });
+  });
+
+  // --- 初期化 ---
+  (async () => {
+    try { await fetchMessages(); } catch {}
+    setupSocket();
+  })();
+
+  // cleanup on unload
+  window.addEventListener('beforeunload', () => {
+    if (seedRotateId) clearInterval(seedRotateId);
+    if (autoKeepIntervalId) clearInterval(autoKeepIntervalId);
+    if (autoClearIntervalId) clearInterval(autoClearIntervalId);
+    angerController.stop = true;
+  });
+
+  // expose for debugging
+  window._min2 = { messages, startAngerAndGoodAll, stopAngerAll, startAutoKeep, stopAutoKeep: stopAutoKeep, startAutoClear, stopAutoClear };
+
+})();
+</script>
+</body>
+</html>
