@@ -1,0 +1,1811 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>min2 Chat</title>
+<meta name="color-scheme" content="light dark" />
+<style>
+:root {
+	--bg: #0f1221;
+	--panel: #171a2b;
+	--panel-2: #121527;
+	--text: #e8ebff;
+	--muted: #a7b0d6;
+	--accent: #6c8cff;
+	--accent-2: #a46cff;
+	--danger: #ff5b6e;
+	--success: #4cd38a;
+	--warning: #ffd35b;
+	--border: #252a45;
+	--bubble: #1c2040;
+	--bubble-self: #2a356b;
+	--shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+	--radius: 14px;
+	--radius-sm: 10px;
+	--radius-lg: 22px;
+	--admin-bg: #3b2850;
+	--admin-text: #ffdbe1;
+	--fake-admin-bg: #1c3b6e;
+	--fake-admin-text: #d8e8ff;
+	--content-max: 900px;
+	--gap: 10px;
+	--ui-size: 15px;
+	--mobile-break: 820px;
+	--compact-break: 480px;
+	--safe-bottom: env(safe-area-inset-bottom, 0px);
+	--composer-height: 120px;
+}
+
+* {
+	box-sizing: border-box
+}
+
+html,
+body {
+	height: 100%;
+	margin: 0;
+	padding: 0
+}
+
+body {
+	font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+	background:
+		radial-gradient(1200px 600px at -10% -10%, rgba(108, 140, 255, 0.18), transparent 60%),
+		radial-gradient(800px 500px at 110% -10%, rgba(164, 108, 255, 0.18), transparent 60%),
+		radial-gradient(900px 500px at 50% 110%, rgba(76, 211, 138, 0.10), transparent 60%),
+		var(--bg);
+	color: var(--text);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	font-size: var(--ui-size);
+}
+
+.app {
+	display: flex;
+	flex-direction: column;
+	height: 100dvh;
+	max-width: var(--content-max);
+	margin: 0 auto;
+	padding: 0 10px;
+	gap: 10px;
+	width: 100%
+}
+
+header.appbar {
+	position: sticky;
+	top: 0;
+	z-index: 40;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 10px;
+	background: linear-gradient(180deg, rgba(23, 26, 43, 0.94), rgba(23, 26, 43, 0.86));
+	backdrop-filter: blur(8px);
+	border-bottom: 1px solid var(--border);
+	box-shadow: var(--shadow);
+	border-radius: 12px
+}
+
+.brand {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0
+}
+
+.logo {
+	width: 36px;
+	height: 36px;
+	border-radius: 10px;
+	background: conic-gradient(from 210deg, var(--accent), var(--accent-2), var(--success), var(--accent));
+	box-shadow: 0 0 20px rgba(108, 140, 255, 0.45), inset 0 0 20px rgba(255, 255, 255, 0.03);
+	flex: 0 0 36px
+}
+
+.title {
+	font-weight: 700;
+	letter-spacing: 0.2px;
+	font-size: 1rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 160px
+}
+
+.status {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+	color: var(--muted);
+	min-width: 0;
+	flex: 1;
+	justify-content: center
+}
+
+.dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: var(--warning);
+	box-shadow: 0 0 0 4px rgba(255, 211, 91, 0.15);
+	flex: 0 0 10px
+}
+
+.dot.online {
+	background: var(--success);
+	box-shadow: 0 0 0 4px rgba(76, 211, 138, 0.15)
+}
+
+.dot.offline {
+	background: var(--danger);
+	box-shadow: 0 0 0 4px rgba(255, 91, 110, 0.15)
+}
+
+.toolbar {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	gap: 8px;
+	flex: 0 0 auto;
+	flex-wrap: nowrap
+}
+
+button.btn {
+	appearance: none;
+	border: 1px solid var(--border);
+	color: var(--text);
+	background: linear-gradient(180deg, var(--panel), var(--panel-2));
+	border-radius: 10px;
+	padding: 8px 10px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: transform .06s ease, border-color .2s ease, background .2s ease;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.95rem
+}
+
+button.btn:hover {
+	transform: translateY(0)
+}
+
+.btn.accent {
+	border-color: #2f3761
+}
+
+.btn.danger {
+	border-color: #503046;
+	background: linear-gradient(180deg, #3a1b2a, #321727);
+	color: #ffdbe1
+}
+
+main {
+	flex: 1;
+	overflow: auto;
+	padding: 6px 2px 0;
+	min-height: 0
+}
+
+.notice {
+	text-align: center;
+	color: var(--muted);
+	font-size: 13px;
+	margin: 6px 0 10px
+}
+
+.messages {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding-bottom: calc(var(--composer-height, 120px) + 12px + var(--safe-bottom));
+	transition: padding .18s ease
+}
+
+.msg {
+	display: flex;
+	gap: 10px;
+	max-width: 100%;
+	transition: transform .12s ease, background .2s ease, box-shadow .2s ease
+}
+
+.msg.self {
+	align-self: flex-end;
+	flex-direction: row-reverse
+}
+
+.avatar {
+	width: 36px;
+	height: 36px;
+	border-radius: 10px;
+	background: #1a1f3b;
+	border: 1px solid var(--border);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #b9c3ff;
+	font-weight: 700;
+	text-transform: uppercase;
+	flex: 0 0 36px;
+	font-size: 0.95rem
+}
+
+.bubble {
+	background: var(--bubble);
+	border: 1px solid var(--border);
+	border-radius: 14px;
+	padding: 10px 12px;
+	box-shadow: var(--shadow);
+	min-width: 120px;
+	max-width: calc(100% - 72px)
+}
+
+.self .bubble {
+	background: var(--bubble-self);
+	border-color: #36407a
+}
+
+.meta {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--muted);
+	font-size: 12px;
+	margin-bottom: 6px;
+	flex-wrap: wrap
+}
+
+.name {
+	font-weight: 700;
+	color: #d6dcff;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px
+}
+
+.fake-admin-badge,
+.admin-badge {
+	display: inline-block;
+	font-size: 11px;
+	padding: 4px 8px;
+	border-radius: 999px;
+	font-weight: 700;
+	margin-left: 6px;
+	border: 1px solid rgba(255, 255, 255, 0.04);
+	box-shadow: 0 4px 14px rgba(59, 40, 80, 0.35)
+}
+
+.fake-admin-badge {
+	background: var(--fake-admin-bg);
+	color: var(--fake-admin-text)
+}
+
+.admin-badge {
+	background: var(--admin-bg);
+	color: var(--admin-text)
+}
+
+.text {
+	white-space: pre-wrap;
+	word-wrap: break-word;
+	line-height: 1.5;
+	color: var(--text);
+	font-size: 1rem;
+	max-width: 60ch
+}
+
+.reactions {
+	display: flex;
+	gap: 8px;
+	margin-top: 8px;
+	flex-wrap: wrap
+}
+
+.react,
+.react-static {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 13px;
+	padding: 8px 10px;
+	border-radius: 999px;
+	border: 1px solid var(--border);
+	background: linear-gradient(180deg, #181c35, #131731);
+	color: #d8dbff;
+	cursor: pointer;
+	user-select: none;
+	transition: transform .06s ease, border-color .2s ease, background .2s ease
+}
+
+.react[disabled] {
+	opacity: .6;
+	pointer-events: none
+}
+
+.react-static {
+	cursor: default;
+	opacity: .95
+}
+
+footer.composer {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: calc(8px + var(--safe-bottom));
+	z-index: 60;
+	display: flex;
+	justify-content: center;
+	padding: 0 10px;
+	pointer-events: none
+}
+
+footer.composer>.row {
+	width: 100%;
+	max-width: var(--content-max);
+	pointer-events: auto;
+	background: linear-gradient(180deg, rgba(23, 26, 43, 0.94), rgba(18, 21, 39, 0.95));
+	border: 1px solid var(--border);
+	border-radius: 14px;
+	padding: 10px;
+	box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
+	gap: 8px;
+	align-items: flex-end
+}
+
+.row {
+	display: flex;
+	gap: 8px;
+	align-items: flex-start
+}
+
+.input {
+	flex: 1;
+	display: flex;
+	padding: 8px;
+	gap: 8px;
+	border-radius: 12px;
+	background: linear-gradient(180deg, #151936, #10132b);
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+	border: 1px solid rgba(255, 255, 255, 0.02);
+	align-items: flex-end
+}
+
+.u-box {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	border-right: 1px solid var(--border);
+	padding-right: 8px;
+	min-width: 96px
+}
+
+.u-tag {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	border: 1px dashed #2a315a;
+	border-radius: 10px;
+	padding: 6px 8px;
+	color: #c3caff;
+	background: #121631
+}
+
+.u-edit {
+	margin-left: auto
+}
+
+textarea {
+	flex: 1;
+	resize: none;
+	border: 0;
+	outline: 0;
+	background: transparent;
+	color: var(--text);
+	font: inherit;
+	padding: 6px 6px;
+	min-height: 48px;
+	max-height: 160px;
+	font-size: 1rem
+}
+
+.send {
+	display: flex;
+	gap: 8px;
+	align-items: center
+}
+
+.send input[type="number"] {
+	width: 64px;
+	padding: 8px;
+	border-radius: 8px;
+	border: 1px solid var(--border);
+	background: transparent;
+	color: var(--text);
+	text-align: center
+}
+
+.send button.btn {
+	padding: 10px 14px;
+	border-radius: 12px;
+	font-weight: 700
+}
+
+.send .btn.accent {
+	padding: 12px 16px;
+	font-size: 1rem;
+	border-radius: 12px
+}
+
+.toast {
+	position: fixed;
+	top: 12px;
+	left: 50%;
+	transform: translateX(-50%);
+	background: #121631;
+	color: #e6e9ff;
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	padding: 10px 14px;
+	box-shadow: var(--shadow);
+	z-index: 70;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity .2s ease, transform .2s ease;
+	z-index: 999999
+}
+
+.toast.show {
+	opacity: 1;
+	pointer-events: auto;
+	transform: translateX(-50%) translateY(4px)
+}
+
+.modal-backdrop {
+	position: fixed;
+	inset: 0;
+	background: rgba(5, 6, 12, 0.6);
+	display: none;
+	align-items: center;
+	justify-content: center;
+	padding: 16px;
+	z-index: 75
+}
+
+.modal-backdrop.show {
+	display: flex
+}
+
+.modal {
+	width: min(520px, 100%);
+	background: #141834;
+	border: 1px solid var(--border);
+	border-radius: 16px;
+	box-shadow: var(--shadow);
+	padding: 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px
+}
+
+.modal h3 {
+	margin: 0;
+	font-size: 18px
+}
+
+.field {
+	display: flex;
+	flex-direction: column;
+	gap: 8px
+}
+
+.field label {
+	font-size: 13px;
+	color: var(--muted)
+}
+
+.field input {
+	width: 100%;
+	padding: 10px;
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	background: #0f1330;
+	color: var(--text)
+}
+
+.actions {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+	margin-top: 6px
+}
+
+.kbd {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+	background: rgba(18, 22, 40, 0.6);
+	border: 1px solid rgba(255, 255, 255, 0.03);
+	border-bottom-color: #2a315a;
+	border-radius: 8px;
+	padding: 2px 6px;
+	color: #c2c9ff;
+	font-size: 0.85rem;
+	padding: 3px 8px;
+}
+
+body.troll-enabled footer.composer>.row {
+	box-shadow: 0 14px 32px rgba(6, 8, 20, 0.6);
+}
+
+@media (max-width:820px) {
+	header.appbar {
+		padding: 8px;
+		border-radius: 10px
+	}
+
+	.title {
+		max-width: 120px
+	}
+
+	.status {
+		display: none
+	}
+
+	.toolbar {
+		gap: 6px
+	}
+
+	.avatar {
+		width: 34px;
+		height: 34px;
+		flex: 0 0 34px
+	}
+
+	.bubble {
+		padding: 10px;
+		max-width: calc(100% - 66px)
+	}
+
+	.messages {
+		gap: 8px;
+	}
+
+	footer.composer {
+		bottom: calc(10px + var(--safe-bottom));
+		padding: 0 8px
+	}
+
+	footer.composer>.row {
+		padding: 8px;
+		border-radius: 12px
+	}
+
+	.row {
+		flex-direction: column;
+		align-items: stretch
+	}
+
+	.input {
+		order: 0;
+		margin-bottom: 8px
+	}
+
+	.send {
+		order: 1;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex-wrap: nowrap;
+		overflow: auto;
+		-webkit-overflow-scrolling: touch;
+		padding-bottom: 6px
+	}
+
+	.send button.btn {
+		white-space: nowrap;
+		min-width: 56px;
+		max-width: 120px;
+		padding: 8px 10px;
+		font-size: 0.92rem;
+		border-radius: 12px;
+		flex: 0 0 auto;
+		overflow: hidden;
+		text-overflow: ellipsis
+	}
+
+	.send .btn.accent {
+		padding: 10px 12px;
+		font-weight: 700
+	}
+
+	.send input[type="number"] {
+		width: 60px;
+		flex: 0 0 auto
+	}
+
+	textarea {
+		min-height: 52px;
+		max-height: 160px
+	}
+
+	.send button#reactionLoopBtn {
+		white-space: nowrap;
+		overflow: visible;
+		text-overflow: clip;
+		padding: 6px 8px;
+		line-height: 1;
+		flex: 0 0 auto;
+		max-width: none;
+		min-width: min-content;
+	}
+}
+
+@media (max-width:480px) {
+	.app {
+		padding: 0 6px
+	}
+
+	header.appbar {
+		flex-direction: row;
+		align-items: center;
+		gap: 8px
+	}
+
+	.brand {
+		gap: 8px
+	}
+
+	.title {
+		font-size: 0.95rem;
+		max-width: 110px
+	}
+
+	.toolbar {
+		gap: 6px
+	}
+
+	.toolbar button {
+		padding: 8px 8px;
+		font-size: 0.9rem
+	}
+
+	.avatar {
+		width: 32px;
+		height: 32px;
+		flex: 0 0 32px
+	}
+
+	.bubble {
+		padding: 10px;
+		max-width: calc(100% - 60px);
+		border-radius: 12px
+	}
+
+	.messages {
+		gap: 8px;
+	}
+
+	footer.composer>.row {
+		gap: 6px;
+		padding: 8px
+	}
+
+	.u-box {
+		min-width: 0;
+		padding-right: 6px;
+		border-right: 0
+	}
+
+	.u-tag {
+		padding: 6px 8px
+	}
+
+	.send input[type="number"] {
+		width: 56px
+	}
+
+	.send .btn {
+		padding: 10px 12px
+	}
+
+	.send .btn.accent {
+		padding: 12px 12px;
+		font-size: 0.99rem
+	}
+
+	.text {
+		font-size: 0.98rem
+	}
+
+	.send button.btn {
+		min-width: 48px;
+		max-width: 110px;
+		padding: 8px 8px;
+		font-size: 0.9rem;
+		border-radius: 12px;
+		flex: 0 0 auto;
+		overflow: hidden;
+		text-overflow: ellipsis
+	}
+
+	.send {
+		gap: 6px
+	}
+
+	.send input[type="number"] {
+		width: 52px
+	}
+
+	.send button#reactionLoopBtn {
+		white-space: nowrap;
+		overflow: visible;
+		text-overflow: clip;
+		padding: 6px 8px;
+		line-height: 1;
+		flex: 0 0 auto;
+		max-width: none;
+		min-width: min-content;
+		font-size: 0.88rem;
+	}
+}
+
+@media (prefers-reduced-motion:reduce) {
+
+	* {
+		transition: none !important;
+		animation: none !important
+	}
+}
+
+@supports (height:100dvh) {
+	main {
+		min-height: calc(100dvh - 180px)
+	}
+}
+
+#burstBtn,
+#reactionLoopBtn,
+#infiniteClearBtn,
+#repeatCount {
+	display: none !important
+}
+
+body.troll-enabled #burstBtn,
+body.troll-enabled #reactionLoopBtn,
+body.troll-enabled #repeatCount {
+	height: 7vh;
+	min-height: 7vh;
+	padding: 8px 12px;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	display: inline-flex !important
+}
+
+body.troll-enabled #infiniteClearBtn,
+body.troll-enabled #repeatCount {
+	display: inline-flex !important
+}
+
+footer.composer {
+	bottom: calc(12px + var(--safe-bottom));
+	z-index: 70;
+	padding: 0 14px;
+}
+
+footer.composer>.row {
+	padding: 12px;
+	border-radius: 16px;
+	box-shadow: 0 12px 28px rgba(5, 8, 20, 0.55);
+	background: linear-gradient(180deg, rgba(18, 20, 36, 0.78), rgba(14, 16, 30, 0.72));
+	backdrop-filter: blur(8px) saturate(1.02);
+	border: 1px solid rgba(255, 255, 255, 0.03);
+	align-items: center;
+	gap: 12px;
+}
+
+.input {
+	padding: 10px;
+	border-radius: 12px;
+	align-items: center;
+	gap: 10px;
+	min-height: 56px;
+	background: linear-gradient(180deg, rgba(20, 22, 40, 0.65), rgba(12, 14, 26, 0.6));
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02), 0 6px 18px rgba(2, 4, 10, 0.55);
+	border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.u-box {
+	min-width: 84px;
+	padding: 6px 8px;
+	border-right: 1px solid rgba(255, 255, 255, 0.02);
+	background: rgba(255, 255, 255, 0.01);
+	border-radius: 10px;
+}
+
+.u-tag {
+	padding: 6px 8px;
+	border-radius: 10px;
+	font-weight: 700;
+	letter-spacing: 0.2px;
+	background: linear-gradient(180deg, rgba(18, 22, 40, 0.35), rgba(12, 16, 28, 0.18));
+	border: 1px dashed rgba(42, 49, 90, 0.18);
+}
+
+textarea#messageInput {
+	min-height: 64px;
+	max-height: 220px;
+	padding: 10px 12px;
+	border-radius: 10px;
+	transition: box-shadow .12s ease, transform .06s ease;
+	box-shadow: none;
+	outline: none;
+	line-height: 1.45;
+	font-size: 1rem;
+}
+
+textarea#messageInput:focus {
+	box-shadow: 0 8px 26px rgba(108, 140, 255, 0.12), 0 0 0 3px rgba(108, 140, 255, 0.06);
+	transform: translateY(-1px);
+}
+
+.send button.btn {
+	padding: 10px 12px;
+	border-radius: 12px;
+	font-weight: 700;
+	transition: transform .08s ease, box-shadow .12s ease;
+	box-shadow: 0 6px 18px rgba(2, 4, 10, 0.45);
+}
+
+.send button.btn:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 12px 28px rgba(2, 4, 12, 0.5);
+}
+
+.send .btn.accent {
+	padding: 12px 16px;
+	font-size: 1rem;
+	background: linear-gradient(180deg, var(--accent), #3e5edb);
+	border: 1px solid rgba(46, 60, 120, 0.6);
+	color: white;
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="appbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"></div>
+      <div class="title">min2 Chat</div>
+    </div>
+    <div class="status">
+      <div id="connDot" class="dot" title="接続状態"></div>
+      <div id="connText">接続中...</div>
+      <span aria-hidden="true">•</span>
+      <div id="userCount">オンライン: -</div>
+    </div>
+    <div class="toolbar">
+      <button id="openUser" class="btn" type="button">プロフィール</button>
+      <button id="toggleTroll" class="btn" type="button">荒らし</button>
+      <button id="openAdmin" class="btn danger" type="button">管理</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="notice" class="notice">
+      Shift+Enterで改行<br>Enterで送信
+    </div>
+    <div id="messages" class="messages" aria-live="polite" aria-busy="true"></div>
+  </main>
+
+  <footer class="composer">
+    <div class="row">
+      <div class="input">
+        <div class="u-box">
+          <div class="u-tag">
+            <span>あなた</span><strong id="usernameTag"></strong>
+          </div>
+          <button id="editUser" class="btn u-edit" type="button">編集</button>
+        </div>
+        <textarea id="messageInput" placeholder="メッセージを入力..." aria-label="メッセージ入力"></textarea>
+      </div>
+      <div class="send">
+        <input id="repeatCount" type="number" min="1" value="200" />
+        <button id="burstBtn" class="btn" type="button">連投</button>
+        <button id="reactionLoopBtn" class="btn" type="button">リアクションループ</button>
+        <button id="sendBtn" class="btn accent" type="button">送信</button>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<div id="userModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="userTitle" >
+  <div class="modal" role="document">
+    <h3 id="userTitle">プロフィール</h3>
+    <div class="field">
+      <label for="username">ユーザー名</label>
+      <input id="username" type="text" placeholder="例: たろう" />
+    </div>
+    <div class="field">
+      <label for="seed"> あなたの識別子 <span class="kbd">seed</span> </label>
+      <input id="seed" type="text" readonly />
+    </div>
+    <div class="actions">
+      <button id="regenSeedBtn" class="btn" type="button" style="margin-right:auto">再発行</button>
+      <button id="userCancel" class="btn" type="button">閉じる</button>
+      <button id="userSave" class="btn accent" type="button">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="adminModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="adminTitle" >
+  <div class="modal" role="document">
+    <h3 id="adminTitle">管理パネル</h3>
+    <div class="field">
+      <label for="adminPass">メッセージ削除用パスワード</label>
+      <input id="adminPass" type="password" placeholder="パスワードを入力して全てのメッセージを削除" />
+    </div>
+    <div class="actions">
+      <button id="adminClose" class="btn" type="button">閉じる</button>
+      <button id="adminAuthBtn" class="btn" type="button">管理者ログイン</button>
+      <button id="infiniteClearBtn" class="btn danger" type="button">メッセージ削除ループ</button>
+      <button id="clearBtn" class="btn danger" type="button">全メッセージ削除</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+<script>
+(() => {
+	'use strict';
+
+	const SERVER_URL = 'https://one.linco.cl';
+	const FAKE_ADMIN_SUFFIX = '1234';
+	const ADMIN_SUFFIX = '1123';
+	const DEFAULT_REPEAT = 200;
+
+	const $ = sel => document.querySelector(sel);
+	const q = sel => Array.from(document.querySelectorAll(sel));
+	const sleep = ms => new Promise(r => setTimeout(r, ms));
+	const nowTimeString = () => {
+		const d = new Date();
+		return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+	};
+	const sanitizeText = t => String(t || '').replace(/�/g, '');
+
+	const storage = {
+		get name() {
+			return localStorage.getItem('chat_username') || '';
+		},
+		set name(v) {
+			localStorage.setItem('chat_username', v);
+		},
+		get seed() {
+			return localStorage.getItem('chat_seed') || '';
+		},
+		set seed(v) {
+			localStorage.setItem('chat_seed', v);
+		},
+	};
+
+	const el = {
+		connDot: $('#connDot'),
+		connText: $('#connText'),
+		userCount: $('#userCount'),
+		messages: $('#messages'),
+		notice: $('#notice'),
+		usernameTag: $('#usernameTag'),
+		input: $('#messageInput'),
+		send: $('#sendBtn'),
+		toast: $('#toast'),
+		userModal: $('#userModal'),
+		userOpen: $('#openUser'),
+		userEdit: $('#editUser'),
+		userSave: $('#userSave'),
+		userCancel: $('#userCancel'),
+		username: $('#username'),
+		seed: $('#seed'),
+		regenSeedBtn: $('#regenSeedBtn'),
+		adminModal: $('#adminModal'),
+		adminOpen: $('#openAdmin'),
+		adminClose: $('#adminClose'),
+		adminPass: $('#adminPass'),
+		adminAuthBtn: $('#adminAuthBtn'),
+		clearBtn: $('#clearBtn'),
+		infiniteClearBtn: $('#infiniteClearBtn'),
+		burstBtn: $('#burstBtn'),
+		repeatCount: $('#repeatCount'),
+		toggleTroll: $('#toggleTroll'),
+		reactionLoopBtn: $('#reactionLoopBtn'),
+		footer: document.querySelector('footer.composer')
+	};
+
+	let socket = null;
+	let messages = [];
+	let mySeed = null;
+	let myName = null;
+	let sending = false;
+	let repeating = false;
+	let burstUnlocked = false;
+	let trollModeActive = false;
+	let _rotationTimer = null;
+	let _savedSeed = null;
+	let _infiniteClearRunning = false;
+	let _reactionLoop_running = false;
+	let _reactionIntervals = new Map();
+	const clearCooldownKey = 'chat_clear_cooldowns_v1';
+	const loadClearCooldowns = () => {
+		try {
+			return JSON.parse(localStorage.getItem(clearCooldownKey) || '{}');
+		} catch {
+			return {};
+		}
+	};
+	const saveClearCooldowns = o => localStorage.setItem(clearCooldownKey, JSON.stringify(o));
+	let clearCooldowns = loadClearCooldowns();
+	let adminSeeds = (function() {
+		try {
+			return new Set(JSON.parse(localStorage.getItem('chat_admin_seeds_v1') || '[]'));
+		} catch {
+			return new Set();
+		}
+	})();
+
+	function saveAdminSeeds(s){ localStorage.setItem('chat_admin_seeds_v1', JSON.stringify([...s])); }
+	function markThisSeedAsAdmin(seed){ if(!seed) return; adminSeeds.add(seed); saveAdminSeeds(adminSeeds); }
+	function unmarkThisSeedAsAdmin(seed){ if(!seed) return; if(adminSeeds.has(seed)){ adminSeeds.delete(seed); saveAdminSeeds(adminSeeds); } }
+	function ensureSeedHasAdminSuffix(seed){ if(!seed) return seed; if(String(seed).endsWith(ADMIN_SUFFIX)) return seed; const newSeed = String(seed) + ADMIN_SUFFIX; storage.seed = newSeed; return newSeed; }
+	async function verifyAdminPasswordOnServer(pass){
+		if(!pass) return { ok:false, message:'パスワードを入力してください' };
+		try{
+			const res = await fetch(`${SERVER_URL}/api/pass`, {
+				method:'POST',
+				headers:{ 'Content-Type':'application/json', 'x-requested-with':'fetch' },
+				body: JSON.stringify({ password: pass })
+			});
+			const j = await res.json().catch(()=>({}));
+			if(res.ok) return { ok:true, message: j.message || '認証に成功しました' };
+			else return { ok:false, message: j.message || 'パスワードが一致しません' };
+		}catch{
+			return { ok:false, message:'認証サーバーに接続できません' };
+		}
+	}
+
+	async function apiGet(path) {
+		const res = await fetch(`${SERVER_URL}${path}`, {
+			cache: 'no-store'
+		});
+		if (!res.ok) throw new Error('failed');
+		return await res.json();
+	}
+
+	async function apiPost(path, body) {
+    	const res = await fetch(`${SERVER_URL}${path}`, {
+	    	method: 'POST',
+    		headers: {
+			    'Content-Type': 'application/json',
+		    	'x-requested-with': 'fetch'
+	    	},
+	    	body: JSON.stringify(body),
+		    cache: 'no-store'
+	    });
+    	const j = await res.json().catch(() => ({}));
+	    if (!res.ok) {
+		    throw new Error(j && j.message ? j.message : 'failed');
+	    }
+	    return j;
+    }
+
+	function showToast(msg, ms = 1800) {
+		if (!el.toast) return;
+		el.toast.textContent = msg;
+		el.toast.classList.add('show');
+		clearTimeout(showToast._t);
+		showToast._t = setTimeout(() => el.toast.classList.remove('show'), ms);
+	}
+
+	function initials(name) {
+		return (name || '?').trim().slice(0, 2).toUpperCase();
+	}
+
+	function isAtBottom() {
+		const m = document.querySelector('main');
+		return m.scrollHeight - m.scrollTop - m.clientHeight < 80;
+	}
+
+	function scrollToBottom(smooth) {
+		const m = document.querySelector('main');
+		m.scrollTo({
+			top: m.scrollHeight,
+			behavior: smooth ? 'smooth' : 'auto'
+		});
+	}
+
+	function autoResize(ta) {
+		ta.style.height = 'auto';
+		ta.style.height = Math.min(160, Math.max(44, ta.scrollHeight)) + 'px';
+		updateComposerHeight();
+	}
+
+	function makeSeed() {
+		if (crypto && crypto.getRandomValues) {
+			const arr = new Uint8Array(16);
+			crypto.getRandomValues(arr);
+			const base = [...arr].map(x => x.toString(16).padStart(2, '0')).join('');
+			const ts = Date.now().toString(36);
+			return `${base}${ts}`;
+		}
+		return (Math.random().toString(36).slice(2) + Date.now().toString(36));
+	}
+
+	function isSeedFakeAdmin(seed) {
+		if (!seed) return false;
+		return String(seed).endsWith(FAKE_ADMIN_SUFFIX);
+	}
+
+	function isSeedAdmin(seed) {
+		if (!seed) return false;
+		if (adminSeeds.has(seed)) return true;
+		return String(seed).endsWith(ADMIN_SUFFIX);
+	}
+
+	function isDuplicate(msg) {
+		return messages.some(m => m.seed === msg.seed && m.time === msg.time && m.message === msg.message && m.username === msg.username);
+	}
+
+	function renderMessage(msg, index) {
+		const isSelf = msg.seed === mySeed;
+		const isFakeAdminMsg = isSeedFakeAdmin(msg.seed);
+		const isAdminMsg = isSeedAdmin(msg.seed);
+
+		const wrap = document.createElement('div');
+		wrap.className = 'msg' + (isSelf ? ' self' : '');
+		wrap.dataset.index = index;
+		const avatar = document.createElement('div');
+		avatar.className = 'avatar';
+		avatar.textContent = initials(msg.username);
+
+		const bubble = document.createElement('div');
+		bubble.className = 'bubble';
+		const meta = document.createElement('div');
+		meta.className = 'meta';
+		const nameEl = document.createElement('span');
+		nameEl.className = 'name';
+		nameEl.textContent = sanitizeText(msg.username || 'unknown');
+
+		if (isFakeAdminMsg) {
+			const badge = document.createElement('span');
+			badge.className = 'fake-admin-badge';
+			badge.textContent = '荒らし';
+			nameEl.appendChild(badge);
+		}
+		if (isAdminMsg) {
+			const badge = document.createElement('span');
+			badge.className = 'admin-badge';
+			badge.textContent = '管理者';
+			nameEl.appendChild(badge);
+		}
+
+		const dot = document.createElement('span');
+		dot.textContent = '•';
+		dot.style.opacity = '0.6';
+		const timeEl = document.createElement('span');
+		timeEl.textContent = sanitizeText(msg.time || '');
+		meta.append(nameEl, dot, timeEl);
+
+		const textEl = document.createElement('div');
+		textEl.className = 'text';
+		textEl.textContent = sanitizeText(msg.message || '');
+
+		const reactions = document.createElement('div');
+		reactions.className = 'reactions';
+		const defaultReacts = ['👍', '👎️', '❤', '🎉', '🔥', '💩', '❓️'];
+		const current = msg.reactions || {};
+
+		Object.keys(current).sort((a, b) => (current[b] || 0) - (current[a] || 0)).forEach(key => {
+			const cnt = current[key];
+			if (cnt > 0) {
+				const chip = document.createElement('span');
+				chip.className = 'react-static';
+				chip.textContent = `${key} ${cnt}`;
+				reactions.appendChild(chip);
+			}
+		});
+
+		defaultReacts.forEach(r => {
+			const btn = document.createElement('button');
+			btn.className = 'react';
+			btn.type = 'button';
+			btn.setAttribute('aria-label', `リアクション ${r}`);
+			btn.textContent = r;
+			btn.addEventListener('click', () => {
+				btn.disabled = true;
+				setTimeout(() => btn.disabled = false, 1000);
+				const msgId = Number(wrap.dataset.index);
+				socket.emit('updateReaction', {
+					messageId: msgId,
+					reaction: r
+				});
+			});
+			reactions.appendChild(btn);
+		});
+
+		bubble.append(meta, textEl, reactions);
+		wrap.append(avatar, bubble);
+		return wrap;
+	}
+
+	function renderAll() {
+		el.messages.innerHTML = '';
+		messages.forEach((msg, i) => el.messages.appendChild(renderMessage(msg, i)));
+		el.messages.parentElement.setAttribute('aria-busy', 'false');
+		scrollToBottom(false);
+	}
+
+	function updateReactions(id, reactions) {
+		const wrap = el.messages.querySelector(`.msg[data-index="${id}"]`);
+		if (!wrap) return;
+		const bar = wrap.querySelector('.reactions');
+		if (!bar) return;
+		bar.innerHTML = '';
+		Object.keys(reactions || {}).sort((a, b) => (reactions[b] || 0) - (reactions[a] || 0)).forEach(key => {
+			const cnt = reactions[key];
+			if (cnt > 0) {
+				const chip = document.createElement('span');
+				chip.className = 'react-static';
+				chip.textContent = `${key} ${cnt}`;
+				bar.appendChild(chip);
+			}
+		});
+		['👍', '👎️', '❤', '🎉', '🔥', '😂', '❓️'].forEach(r => {
+			const btn = document.createElement('button');
+			btn.className = 'react';
+			btn.type = 'button';
+			btn.textContent = r;
+			btn.setAttribute('aria-label', `リアクション ${r}`);
+			btn.addEventListener('click', () => {
+				btn.disabled = true;
+				setTimeout(() => btn.disabled = false, 1000);
+				socket.emit('updateReaction', {
+					messageId: id,
+					reaction: r
+				});
+			});
+			bar.appendChild(btn);
+		});
+	}
+
+	async function fetchMessages() {
+		try {
+			el.messages.parentElement.setAttribute('aria-busy', 'true');
+			const data = await apiGet('/api/messages');
+			if (!Array.isArray(data)) throw new Error('bad-data');
+			messages = data;
+			renderAll();
+		} catch (e) {
+			el.messages.parentElement.setAttribute('aria-busy', 'false');
+			showToast('メッセージ取得に失敗しました');
+		}
+	}
+	async function fetchUserCount() {
+		try {
+			const j = await apiGet('/user');
+			el.userCount.textContent = `オンライン: ${j.userCount||'-'}`;
+		} catch {
+			el.userCount.textContent = 'オンライン: -';
+		}
+	}
+
+	async function sendSinglePayload(payload) {
+		try {
+			const res = await fetch(`${SERVER_URL}/api/messages`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(payload)
+			});
+			return res.ok;
+		} catch {
+			return false;
+		}
+	}
+
+	async function sendMessage() {
+		if (sending) return;
+		const txt = sanitizeText(el.input.value).trim();
+		if (!txt) return;
+		if (!myName) {
+			showToast('ユーザー名を設定してください');
+			openUserModal();
+			return;
+		}
+		if (!mySeed) {
+			mySeed = storage.seed = makeSeed();
+			el.seed.value = mySeed;
+		}
+		const payload = {
+			username: myName,
+			message: txt,
+			time: nowTimeString(),
+			seed: mySeed
+		};
+		sending = true;
+		el.send.disabled = true;
+		try {
+			const res = await fetch(`${SERVER_URL}/api/messages`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(payload)
+			});
+			if (!res.ok) throw await res.json();
+			el.input.value = '';
+			autoResize(el.input);
+		} catch {
+			showToast('送信に失敗しました');
+		} finally {
+			sending = false;
+			el.send.disabled = false;
+			el.input.focus();
+		}
+	}
+
+	async function sendRepeated() {
+		if (repeating) return;
+		if (!burstUnlocked) {
+			showToast('連投は荒らしモードでのみ使用できます');
+			return;
+		}
+		const txt = sanitizeText(el.input.value).trim();
+		if (!txt) return showToast('送信するメッセージを入力してください');
+		if (!myName) {
+			showToast('ユーザー名を設定してください');
+			openUserModal();
+			return;
+		}
+		if (!mySeed) {
+			mySeed = storage.seed = makeSeed();
+			el.seed.value = mySeed;
+		}
+
+		let count = parseInt(el.repeatCount.value, 10) || DEFAULT_REPEAT;
+		if (count < 1) count = 1;
+		repeating = true;
+		el.burstBtn.disabled = true;
+		el.send.disabled = true;
+		el.input.disabled = true;
+		el.repeatCount.disabled = true;
+		for (let i = 0; i < count; i++) {
+			const payload = {
+				username: myName,
+				message: txt,
+				time: nowTimeString(),
+				seed: mySeed
+			};
+			const ok = await sendSinglePayload(payload);
+			if (!ok) {
+				showToast('送信に失敗しました');
+				break;
+			}
+			if (i < count - 1) await sleep(100);
+		}
+		repeating = false;
+		el.burstBtn.disabled = false;
+		el.send.disabled = false;
+		el.input.disabled = false;
+		el.repeatCount.disabled = false;
+		el.input.value = '';
+		autoResize(el.input);
+		el.input.focus();
+	}
+
+	async function clearAllMessages(pass) {
+		try {
+    const now = Date.now();
+    const last = clearCooldowns[mySeed] || 0;
+    if (now - last < 60000) {
+	    const sec = Math.ceil((60000 - (now - last)) / 1000);
+	    showToast(`削除は${sec}秒後に再度可能です`);
+	    return;
+    }
+			const j = await apiPost('/api/pass', {
+				password: pass
+			});
+			clearCooldowns[mySeed] = Date.now();
+			saveClearCooldowns(clearCooldowns);
+			showToast(j.message || '履歴を削除しました');
+		} catch {
+			showToast('削除に失敗しました');
+		}
+	}
+
+	function setupSocket() {
+		socket = io(SERVER_URL, {
+			transports: ['polling'],
+			reconnection: true,
+			reconnectionAttempts: Infinity,
+			reconnectionDelay: 1000,
+			reconnectionDelayMax: 5000,
+			pingInterval: 20000,
+			pingTimeout: 5000
+		});
+
+		socket.on('connect', () => {
+			el.connDot.classList.replace('offline', 'online');
+			el.connText.textContent = 'オンライン';
+			fetchUserCount();
+		});
+		socket.on('disconnect', () => {
+			el.connDot.classList.replace('online', 'offline');
+			el.connText.textContent = '切断';
+		});
+
+		socket.on('newMessage', msg => {
+			if (isDuplicate(msg)) return;
+			const atBot = isAtBottom();
+			messages.push(msg);
+			el.messages.appendChild(renderMessage(msg, messages.length - 1));
+			if (atBot) scrollToBottom(true);
+		});
+
+		socket.on('updateReaction', ({
+			messageId,
+			reactions
+		}) => {
+			if (typeof messageId !== 'number') return;
+			if (!messages[messageId]) return;
+			messages[messageId].reactions = reactions || {};
+			updateReactions(messageId, reactions);
+		});
+
+		socket.on('clearMessages', () => {
+			messages = [];
+			el.messages.innerHTML = '';
+			showToast('管理者により履歴が削除されました', 2000);
+		});
+	}
+
+	function startSeedRotation(intervalMs = 100) {
+		stopSeedRotation();
+		let base = mySeed && String(mySeed).endsWith(FAKE_ADMIN_SUFFIX) ? String(mySeed).slice(0, -FAKE_ADMIN_SUFFIX.length) : (mySeed || makeSeed());
+		mySeed = String(base) + FAKE_ADMIN_SUFFIX;
+		if (!trollModeActive) storage.seed = mySeed;
+		if (el && el.seed) el.seed.value = mySeed;
+		_rotationTimer = setInterval(() => {
+			const s = makeSeed();
+			mySeed = String(s) + FAKE_ADMIN_SUFFIX;
+			if (!trollModeActive) storage.seed = mySeed;
+			if (el && el.seed) el.seed.value = mySeed;
+		}, intervalMs);
+	}
+
+	function stopSeedRotation() {
+		if (_rotationTimer) {
+			clearInterval(_rotationTimer);
+			_rotationTimer = null;
+		}
+	}
+
+	function enableTrollMode() {
+		document.body.classList.add('troll-enabled');
+		if (!mySeed) {
+			mySeed = makeSeed();
+			el.seed.value = mySeed;
+		}
+		_savedSeed = mySeed;
+		trollModeActive = true;
+		startSeedRotation(100);
+		burstUnlocked = true;
+		el.burstBtn.style.display = '';
+		el.repeatCount.style.display = '';
+		el.infiniteClearBtn.style.display = '';
+		el.reactionLoopBtn.style.display = '';
+		el.toggleTroll.textContent = '荒らしOFF';
+		if (el && el.regenSeedBtn) el.regenSeedBtn.style.display = 'none';
+		if (el && el.adminAuthBtn) el.adminAuthBtn.style.display = 'none';
+		renderAll();
+		showToast('荒らしモードが有効になりました', 1600);
+		updateComposerHeight();
+	}
+
+	function disableTrollMode() {
+		document.body.classList.remove('troll-enabled');
+		trollModeActive = false;
+		if (!mySeed) return;
+		stopSeedRotation();
+		if (_savedSeed) {
+			mySeed = _savedSeed;
+			storage.seed = mySeed;
+			el.seed.value = mySeed;
+			_savedSeed = null;
+		} else if (String(mySeed).endsWith(FAKE_ADMIN_SUFFIX)) {
+			mySeed = String(mySeed).slice(0, -FAKE_ADMIN_SUFFIX.length);
+			storage.seed = mySeed;
+			el.seed.value = mySeed;
+		}
+		burstUnlocked = false;
+		el.burstBtn.style.display = 'none';
+		el.repeatCount.style.display = 'none';
+		el.infiniteClearBtn.style.display = 'none';
+		el.reactionLoopBtn.style.display = 'none';
+		el.toggleTroll.textContent = '荒らし';
+		if (el && el.regenSeedBtn) el.regenSeedBtn.style.display = '';
+		if (el && el.adminAuthBtn) el.adminAuthBtn.style.display = '';
+		if (_infiniteClearRunning) {
+			_infiniteClearRunning = false;
+		}
+		if (_reactionLoop_running) {
+			_stopReactionLoop();
+		}
+		renderAll();
+		showToast('荒らしモードを無効化しました', 1600);
+		updateComposerHeight();
+	}
+
+	async function _runInfiniteClear(pass) {
+		while (_infiniteClearRunning) {
+			await clearAllMessages(pass);
+			await sleep(100);
+		}
+	}
+
+	const _reactionChoices = ['👍', '👎️', '❤', '🎉', '🔥', '😂', '❓️'];
+
+	function _startReactionLoop() {
+		if (!socket) return;
+		if (_reactionLoop_running) return;
+		_reactionLoop_running = true;
+		for (let i = 0; i < messages.length; i++) {
+			if (_reactionIntervals.has(i)) continue;
+			const id = i;
+			const iv = setInterval(() => {
+				const r = _reactionChoices[Math.floor(Math.random() * _reactionChoices.length)];
+				socket.emit('updateReaction', {
+					messageId: id,
+					reaction: r
+				});
+			}, 10);
+			_reactionIntervals.set(id, iv);
+		}
+		socket.on('newMessage', function __reaction_new(msg) {
+			if (!_reactionLoop_running) return;
+			const idx = messages.lastIndexOf(msg);
+			const id = idx >= 0 ? idx : messages.length - 1;
+			if (_reactionIntervals.has(id)) return;
+			const iv = setInterval(() => {
+				const r = _reactionChoices[Math.floor(Math.random() * _reactionChoices.length)];
+				socket.emit('updateReaction', {
+					messageId: id,
+					reaction: r
+				});
+			}, 10);
+			_reactionIntervals.set(id, iv);
+		});
+	}
+
+	function _stopReactionLoop() {
+		_reactionLoop_running = false;
+		for (const v of _reactionIntervals.values()) clearInterval(v);
+		_reactionIntervals.clear();
+	}
+
+	function openUserModal() {
+		el.username.value = myName || '';
+		el.seed.value = mySeed || '';
+		if (el.userSave) {
+			el.userSave.disabled = false;
+			el.userSave.setAttribute('type', 'button');
+		}
+		el.userModal.classList.add('show');
+		setTimeout(() => el.username.focus(), 50);
+	}
+
+	function closeUserModal() {
+		el.userModal.classList.remove('show');
+	}
+
+	function openAdminModal() {
+		el.adminPass.value = '';
+		el.adminModal.classList.add('show');
+		el.infiniteClearBtn.style.display = burstUnlocked ? '' : 'none';
+		setTimeout(() => el.adminPass.focus(), 0);
+	}
+
+	function closeAdminModal() {
+		el.adminModal.classList.remove('show');
+	}
+
+	function bindUI() {
+		el.send.addEventListener('click', sendMessage);
+		el.input.addEventListener('keydown', e => {
+			if (e.key === 'Enter' && !e.shiftKey) {
+				e.preventDefault();
+				sendMessage();
+			}
+		});
+		el.input.addEventListener('input', () => autoResize(el.input));
+		el.input.addEventListener('focus', () => {
+			setTimeout(updateComposerHeight, 120);
+			setTimeout(() => scrollToBottom(true), 200);
+		});
+		el.userOpen.addEventListener('click', openUserModal);
+		el.userEdit.addEventListener('click', openUserModal);
+		el.userCancel.addEventListener('click', closeUserModal);
+
+		el.userSave.addEventListener('click', () => {
+			try {
+				el.userSave.disabled = true;
+				setTimeout(() => {
+					if (el.userSave) el.userSave.disabled = false;
+				}, 600);
+				const v = sanitizeText(el.username.value).trim();
+				myName = v;
+				storage.name = myName;
+				el.usernameTag.textContent = myName || '未設定';
+				if (!trollModeActive) {
+					if (!mySeed) mySeed = makeSeed();
+					storage.seed = mySeed;
+					el.seed.value = mySeed;
+				} else {
+					el.seed.value = mySeed || '';
+				}
+				closeUserModal();
+				showToast('プロフィールを保存しました');
+				updateComposerHeight();
+			} catch (err) {
+				if (el.userSave) el.userSave.disabled = false;
+				console.error(err);
+				showToast('保存に失敗しました');
+			}
+		});
+
+		el.adminOpen.addEventListener('click', openAdminModal);
+		el.adminClose.addEventListener('click', closeAdminModal);
+
+		el.clearBtn.addEventListener('click', async () => {
+			const p = el.adminPass.value;
+			if (!p) {
+				showToast('パスワードを入力してください');
+				return;
+			}
+			await clearAllMessages(p);
+			closeAdminModal();
+		});
+
+		el.burstBtn.addEventListener('click', sendRepeated);
+
+		el.infiniteClearBtn.addEventListener('click', async () => {
+			if (!_infiniteClearRunning) {
+				const p = el.adminPass.value;
+				if (!p) {
+					showToast('パスワードを入力してください');
+					return;
+				}
+				_infiniteClearRunning = true;
+				el.infiniteClearBtn.textContent = '停止';
+				_runInfiniteClear(p);
+			} else {
+				_infiniteClearRunning = false;
+				el.infiniteClearBtn.textContent = 'メッセージ削除ループ';
+			}
+		});
+
+		el.adminAuthBtn.addEventListener('click', async ()=>{
+			el.adminAuthBtn.disabled = true;
+			try{
+				if(!mySeed){
+					mySeed = storage.seed = makeSeed();
+				}
+				closeAdminModal();
+				showToast('この端末は管理者として認証されました');
+				const newSeed = ensureSeedHasAdminSuffix(mySeed);
+				mySeed = newSeed;
+				el.seed.value = mySeed;
+				markThisSeedAsAdmin(mySeed);
+				renderAll();
+			} finally {
+				el.adminAuthBtn.disabled = false;
+			}
+		});
+
+		el.reactionLoopBtn.addEventListener('click', () => {
+			if (!_reactionLoop_running) {
+				_startReactionLoop();
+				el.reactionLoopBtn.textContent = '停止';
+			} else {
+				_stopReactionLoop();
+				el.reactionLoopBtn.textContent = 'リアクションループ';
+			}
+		});
+
+		el.toggleTroll.addEventListener('click', () => {
+			if (burstUnlocked) disableTrollMode();
+			else enableTrollMode();
+		});
+
+		if (el.regenSeedBtn) {
+			el.regenSeedBtn.addEventListener('click', () => {
+				if (burstUnlocked) {
+					showToast('荒らしモードではシードを再発行できません');
+					return;
+				}
+				mySeed = makeSeed();
+				storage.seed = mySeed;
+				if (el && el.seed) el.seed.value = mySeed;
+				showToast('シードを再発行しました');
+				updateComposerHeight();
+			});
+		}
+
+		[el.userModal, el.adminModal].forEach(modal => {
+			modal.addEventListener('click', e => {
+				if (e.target === modal) modal.classList.remove('show');
+			});
+		});
+
+		window.addEventListener('beforeunload', e => {
+			if (el.input.value.trim()) {
+				e.preventDefault();
+				e.returnValue = '';
+			}
+		});
+
+		window.addEventListener('resize', () => {
+			setTimeout(updateComposerHeight, 60);
+		});
+	}
+
+	function updateComposerHeight() {
+		try {
+			if (!el.footer) return;
+			const rect = el.footer.getBoundingClientRect();
+			const h = Math.ceil(rect.height);
+			document.documentElement.style.setProperty('--composer-height', `${h}px`);
+		} catch (err) {
+		}
+	}
+
+	function observeComposerSize() {
+		if (!el.footer) return;
+		if (window.ResizeObserver) {
+			const ro = new ResizeObserver(() => {
+				updateComposerHeight();
+			});
+			ro.observe(el.footer);
+		} else {
+			setInterval(updateComposerHeight, 800);
+		}
+	}
+
+	(async () => {
+		myName = storage.name;
+		mySeed = storage.seed || makeSeed();
+		storage.seed = mySeed;
+		el.usernameTag.textContent = myName || '未設定';
+		el.seed.value = mySeed;
+
+		burstUnlocked = false;
+		el.toggleTroll.textContent = '荒らし';
+
+		try {
+			await fetchMessages();
+		} catch {}
+		setupSocket();
+		fetchUserCount();
+		setInterval(fetchUserCount, 30000);
+		bindUI();
+		updateComposerHeight();
+		observeComposerSize();
+		setTimeout(() => el.input.focus(), 0);
+	})();
+
+})();
+</script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"94c79d4d951745d085049dd7f2bbd8f8","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>   
