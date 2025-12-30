@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>min2 Chat - Hyper Chaos Fixed</title>
+<meta name="color-scheme" content="light dark" />
+<style>
+:root{ --bg: #0f1221; --panel: #171a2b; --panel-2: #121527; --text: #e8ebff; --muted: #a7b0d6; --accent: #6c8cff; --accent-2: #a46cff; --danger: #ff5b6e; --success: #4cd38a; --warning: #ffd35b; --border: #252a45; --bubble: #1c2040; --bubble-self: #2a356b; --shadow: 0 10px 30px rgba(0,0,0,0.35); --radius: 14px; --radius-sm: 10px; --radius-lg: 22px; --admin-bg: #3b2850; --admin-text: #ffdbe1; }
+* { box-sizing: border-box; }
+html, body { height:100%; margin:0; padding:0; }
+body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
+.app { display:flex; flex-direction:column; height:100dvh; max-width:900px; margin:0 auto; }
+header.appbar { position:sticky; top:0; z-index:10; display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background: rgba(23,26,43,0.85); backdrop-filter: blur(10px); border-bottom:1px solid var(--border); }
+.brand { display:flex; align-items:center; gap:10px; font-weight:700; }
+.logo { width:24px; height:24px; border-radius:6px; background: conic-gradient(from 210deg, var(--accent), var(--accent-2), var(--success), var(--accent)); }
+.status { display:flex; align-items:center; gap:8px; font-size:13px; color: var(--muted); }
+.dot { width:10px; height:10px; border-radius:50%; background: var(--success); }
+.toolbar { display:flex; gap:8px; }
+button.btn { appearance:none; border:1px solid var(--border); color: var(--text); background: linear-gradient(180deg, var(--panel), var(--panel-2)); border-radius:10px; padding:8px 12px; font-weight:600; cursor:pointer; }
+main { flex:1; overflow-y:scroll; padding:14px 12px; scroll-behavior: auto; }
+.messages { display:flex; flex-direction:column; gap:10px; }
+.msg { display:flex; gap:10px; max-width:92%; }
+.msg.self { align-self:flex-end; flex-direction:row-reverse; }
+.avatar { width:36px; height:36px; border-radius:10px; background:#1a1f3b; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-weight:700; }
+.bubble { background: var(--bubble); border:1px solid var(--border); border-radius:14px; padding:10px; box-shadow:var(--shadow); }
+.self .bubble { background: var(--bubble-self); }
+.meta { display:flex; flex-direction:column; gap:2px; color: var(--muted); font-size:12px; margin-bottom:6px; }
+.msg-seed { font-family: monospace; font-size: 10px; opacity: 0.5; cursor:pointer; }
+.msg-seed:hover { opacity: 1; color: var(--accent); }
+.name { font-weight:700; color:#d6dcff; }
+.admin-badge { font-size:10px; padding:2px 6px; border-radius:999px; background:var(--admin-bg); color:var(--admin-text); margin-left:5px; }
+.text { white-space:pre-wrap; word-wrap:break-word; line-height:1.5; }
+.reactions { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+.react, .react-static { display:inline-flex; align-items:center; gap:4px; font-size:12px; padding:4px 8px; border-radius:30px; border:1px solid var(--border); background:rgba(255,255,255,0.05); color:#d8dbff; cursor:pointer; }
+.react-static { background: rgba(108,140,255,0.15); cursor:default; }
+
+footer.composer { background: var(--panel); border-top:1px solid var(--border); padding:12px; }
+.row { display:flex; gap:10px; align-items:flex-start; }
+.input { flex:1; display:flex; padding:8px; gap:8px; border:1px solid var(--border); border-radius:var(--radius); background: #0f1330; }
+.u-box { display:flex; align-items:center; gap:8px; border-right:1px solid var(--border); padding-right:8px; }
+.u-tag { color:#c3caff; font-size:13px; }
+textarea { flex:1; resize:none; border:0; outline:0; background:transparent; color: var(--text); min-height:44px; }
+.controls { display:flex; flex-direction:column; gap:6px; }
+button.accent { background:var(--accent); color:white; border:0; border-radius:10px; padding:8px 16px; font-weight:700; cursor:pointer; }
+.spam-toggle-area { display:flex; align-items:center; justify-content: space-between; gap:8px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:4px 8px; }
+.spam-label { font-size:8px; font-weight:900; color:var(--muted); text-transform:uppercase; }
+.switch { position: relative; display: inline-block; width: 34px; height: 18px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; inset: 0; background-color: #333; transition: .2s; border-radius: 18px; }
+.slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background-color: white; transition: .2s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--accent); }
+input:checked + .slider.danger { background-color: var(--danger); }
+input:checked + .slider:before { transform: translateX(16px); }
+
+.modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:100; }
+.modal-backdrop.show { display:flex; }
+.modal { background:#141834; border:1px solid var(--border); border-radius:16px; padding:20px; width:90%; max-width:400px; display:flex; flex-direction:column; gap:12px; }
+.field { display:flex; flex-direction:column; gap:6px; }
+.field input { padding:10px; border:1px solid var(--border); border-radius:8px; background:#0f1330; color:white; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="appbar">
+    <div class="brand"><div class="logo"></div> min2 Chat</div>
+    <div class="status"><div class="dot"></div> ONLINE</div>
+    <div class="toolbar"><button id="openUser" class="btn">プロフィール</button></div>
+  </header>
+  <main id="scrollArea"><div id="messages" class="messages"></div></main>
+  <footer class="composer">
+    <div class="row">
+      <div class="input">
+        <div class="u-box"><div class="u-tag"><strong id="usernameTag"></strong></div></div>
+        <textarea id="messageInput" placeholder="メッセージ..."></textarea>
+      </div>
+      <div class="controls">
+        <button id="sendBtn" class="accent">SEND</button>
+        <div class="spam-toggle-area"><span class="spam-label">REACT</span><label class="switch"><input type="checkbox" id="autoReact"><span class="slider danger"></span></label></div>
+        <div class="spam-toggle-area"><span class="spam-label">MSG</span><label class="switch"><input type="checkbox" id="autoMsg"><span class="slider"></span></label></div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<div id="userModal" class="modal-backdrop">
+  <div class="modal">
+    <h3>プロフィール設定</h3>
+    <div class="field"><label>ユーザー名</label><input id="username" type="text" maxlength="24"></div>
+    <div class="field"><label>シード値</label>
+      <div style="display:flex; gap:5px;"><input id="seed" type="text" style="flex:1;"><button id="regenSeed" class="btn">🔄</button></div>
+    </div>
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+      <span style="font-size:12px;">シード再生成(1123)</span>
+      <label class="switch"><input type="checkbox" id="autoRegen"><span class="slider"></span></label>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:10px;">
+      <button id="userCancel" class="btn" style="flex:1;">閉じる</button>
+      <button id="userSave" class="btn accent" style="flex:1;">保存</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+(() => {
+  const SERVER_URL = 'https://one.linco.cl';
+  let socket, messages = [], mySeed = localStorage.getItem('chat_seed') || '', myName = localStorage.getItem('chat_username') || '匿名';
+  const REACTION_LIST = ['👍', '😡', '❤️', '😂', '😮', '😢', '🙏', '✨', '✅', '🚀'];
+  const el = {
+    msgCont: document.getElementById('messages'),
+    input: document.getElementById('messageInput'),
+    send: document.getElementById('sendBtn'),
+    autoReact: document.getElementById('autoReact'),
+    autoMsg: document.getElementById('autoMsg'),
+    usernameTag: document.getElementById('usernameTag'),
+    userModal: document.getElementById('userModal'),
+    username: document.getElementById('username'),
+    seed: document.getElementById('seed'),
+    autoRegen: document.getElementById('autoRegen'),
+    scroll: document.getElementById('scrollArea')
+  };
+
+  const makeSeed = () => {
+    let s = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    return el.autoRegen.checked ? s.slice(0, -4) + "1123" : s;
+  };
+  if(!mySeed) { mySeed = makeSeed(); localStorage.setItem('chat_seed', mySeed); }
+
+  const scrollToBottom = (force = false) => {
+    const threshold = 100; 
+    const isAtBottom = el.scroll.scrollHeight - el.scroll.scrollTop <= el.scroll.clientHeight + threshold;
+    if (force || isAtBottom) {
+      el.scroll.scrollTop = el.scroll.scrollHeight;
+    }
+  };
+
+  const startInfiniteReact = (id) => {
+    REACTION_LIST.forEach(async (r) => {
+      while(el.autoReact.checked) {
+        socket.emit('updateReaction', { messageId: id, reaction: r });
+        await new Promise(res => setTimeout(res, 5)); // 超加速
+      }
+    });
+  };
+
+  const renderMessage = (msg, i) => {
+    const div = document.createElement('div');
+    div.className = `msg ${msg.seed === mySeed ? 'self' : ''}`;
+    div.dataset.index = i;
+    div.innerHTML = `
+      <div class="avatar">${(msg.username||'?').slice(0,2)}</div>
+      <div class="bubble">
+        <div class="meta"><span class="msg-seed" onclick="useThisSeed('${msg.seed}')">id:${msg.seed}</span><span class="name">${msg.username}${String(msg.seed).endsWith('1123')?'<span class="admin-badge">管理者</span>':''}</span></div>
+        <div class="text">${msg.message}</div>
+        <div class="reactions" id="re-${i}"></div>
+      </div>
+    `;
+    el.msgCont.appendChild(div);
+    updateReactionsUI(i, msg.reactions);
+    if(el.autoReact.checked) startInfiniteReact(i);
+  };
+
+  const updateReactionsUI = (id, reacts = {}) => {
+    const cont = document.getElementById(`re-${id}`); if(!cont) return;
+    cont.innerHTML = '';
+    Object.entries(reacts).sort((a,b)=>b[1]-a[1]).forEach(([k,v]) => { if(v>0) cont.innerHTML += `<span class="react-static">${k} ${v}</span>`; });
+    REACTION_LIST.forEach(r => {
+      const b = document.createElement('span'); b.className='react'; b.textContent = r;
+      b.onclick = () => socket.emit('updateReaction', { messageId: id, reaction: r });
+      cont.appendChild(b);
+    });
+  };
+
+  const send = async () => {
+    const txt = el.input.value.trim(); if(!txt) return;
+    const post = async () => {
+      if(el.autoRegen.checked) { mySeed = makeSeed(); localStorage.setItem('chat_seed', mySeed); el.seed.value = mySeed; }
+      await fetch(`${SERVER_URL}/api/messages`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ username:myName, message:txt, seed:mySeed, time:new Date().toLocaleTimeString() }) }).catch(()=>{});
+    };
+    if(el.autoMsg.checked) {
+      while(el.autoMsg.checked) { await post(); await new Promise(res => setTimeout(res, 30)); } // 超加速
+    } else {
+      await post(); el.input.value = '';
+    }
+  };
+
+  document.getElementById('openUser').onclick = () => { el.username.value = myName; el.seed.value = mySeed; el.userModal.classList.add('show'); };
+  document.getElementById('userCancel').onclick = () => el.userModal.classList.remove('show');
+  document.getElementById('regenSeed').onclick = () => { el.seed.value = makeSeed(); };
+  document.getElementById('userSave').onclick = () => {
+    myName = el.username.value || '匿名'; mySeed = el.seed.value;
+    localStorage.setItem('chat_username', myName); localStorage.setItem('chat_seed', mySeed);
+    localStorage.setItem('chat_auto_regen', el.autoRegen.checked);
+    el.usernameTag.textContent = myName; el.userModal.classList.remove('show');
+  };
+  window.useThisSeed = (s) => { mySeed = s; localStorage.setItem('chat_seed', s); location.reload(); };
+
+  el.send.onclick = send;
+  el.autoReact.onchange = () => { if(el.autoReact.checked) messages.forEach((_, i) => startInfiniteReact(i)); };
+  el.autoMsg.onchange = () => { if(el.autoMsg.checked && el.input.value.trim()) send(); };
+
+  el.usernameTag.textContent = myName;
+  el.autoRegen.checked = localStorage.getItem('chat_auto_regen') === 'true';
+
+  socket = io(SERVER_URL, { transports:['polling'] });
+  socket.on('newMessage', m => { 
+    messages.push(m); 
+    renderMessage(m, messages.length-1); 
+    scrollToBottom(); 
+  });
+  socket.on('updateReaction', ({ messageId, reactions }) => { 
+    if(messages[messageId]) { 
+      messages[messageId].reactions = reactions; 
+      updateReactionsUI(messageId, reactions); 
+    }
+  });
+  fetch(`${SERVER_URL}/api/messages`).then(r => r.json()).then(data => { 
+    messages = data; 
+    data.forEach(renderMessage); 
+    scrollToBottom(true); 
+  });
+})();
+</script>
+</body>
+</html>

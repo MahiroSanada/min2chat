@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>min2 Chat [💀 MASSACRE CONTROL PANEL]</title>
+<style>
+:root{ --bg: #0f1221; --panel: #171a2b; --text: #e8ebff; --danger: #ff5b6e; --success: #4cd38a; --border: #252a45; --bubble: #1c2040; --bubble-self: #2a356b; --muted: #a7b0d6; --accent: #6c8cff; }
+* { box-sizing: border-box; }
+html, body { height:100%; margin:0; padding:0; background: var(--bg); color: var(--text); font-family: sans-serif; overflow: hidden; }
+.app { display:flex; flex-direction:column; height:100dvh; max-width:900px; margin:0 auto; }
+header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background: rgba(23,26,43,0.9); border-bottom:1px solid var(--border); }
+.status { display:flex; align-items:center; gap:8px; font-size:12px; color: var(--muted); }
+.dot { width:8px; height:8px; border-radius:50%; background: #ffd35b; }
+.dot.online { background: var(--success); }
+main { flex:1; overflow:auto; padding:12px; display:flex; flex-direction:column; gap:8px; }
+.msg { display:flex; gap:10px; max-width:95%; }
+.bubble { background: var(--bubble); border:1px solid var(--border); border-radius:14px; padding:10px; position:relative; word-break: break-all; }
+.admin-badge { font-size:10px; padding:2px 6px; background:#3b2850; color:#ffdbe1; border-radius:10px; margin-left:5px; font-weight: bold; }
+.seed-tag { font-size:9px; opacity:0.5; cursor:pointer; background:#000; padding:1px 4px; border-radius:4px; margin-left:4px; }
+.seed-tag:hover { opacity:1; color:var(--success); }
+.seed-excluded { color:var(--success) !important; font-weight:bold; border:1px solid var(--success); opacity:1; }
+.reactions { display:flex; gap:4px; margin-top:8px; flex-wrap:wrap; max-height: 80px; overflow-y: auto; }
+.react, .react-static { font-size:11px; padding:3px 6px; border-radius:10px; border:1px solid var(--border); background: #181c35; color: white; cursor:pointer; }
+.react-skull { background: #4a1a1a; border-color: #ff5b6e; color: #ff5b6e; font-weight: bold; }
+footer { background: rgba(23,26,43,0.98); border-top:1px solid var(--border); padding:10px; }
+.row { display:flex; gap:6px; margin-bottom:6px; }
+textarea { flex:1; background:#151936; border:1px solid var(--border); color:white; border-radius:8px; padding:8px; resize:none; height:40px; }
+.btn { border:1px solid var(--border); color:white; background:#2a2f4a; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:bold; font-size: 12px; }
+.btn-active { background: #6e1a1a !important; border-color: #ff5b6e !important; color: white !important; box-shadow: 0 0 10px rgba(255,91,110,0.5); }
+.toast { position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#ff5b6e; color:white; padding:8px 16px; border-radius:20px; opacity:0; transition:0.3s; z-index:100; font-weight:bold; }
+.toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div style="font-weight:bold; color:var(--danger);">💀 RANDOM MASSACRE</div>
+    <div class="status"><div id="connDot" class="dot"></div><div id="userCount">- users</div></div>
+    <button id="openUser" class="btn">PROF</button>
+  </header>
+  <main id="messages"></main>
+  <footer>
+    <div class="row"><textarea id="messageInput" placeholder="カオスを生成中..."></textarea></div>
+    <div id="whiteListArea" style="font-size:10px; color:var(--success); margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">WhiteList: (none)</div>
+    <div class="row" style="flex-wrap:wrap; justify-content: center;">
+      <button id="autoSkullBtn" class="btn">AUTO SKULL [OFF]</button>
+      <button id="mimicBtn" class="btn">MIMIC [OFF]</button>
+      <button id="nukeBtn" class="btn" style="background:#4d1a1a;">NUKE</button>
+      <button id="syncHellBtn" class="btn">SYNC HELL [OFF]</button>
+      <button id="sendBtn" class="btn" style="background:var(--accent);">SEND</button>
+    </div>
+  </footer>
+</div>
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+(() => {
+  const SERVER_URL = 'https://one.linco.cl';
+  const ADMIN_SUFFIX = '1123';
+  
+  // ブラウザのメモリに保存するように変更
+  let excludeSeeds = JSON.parse(localStorage.getItem('exclude_seeds') || '[]');
+
+  const EMOJIS = ["💀","💩","🤡","👻","👽","👾","🤖","🎃","🖕","🖕🏻","🖕🏼","🖕🏽","🖕🏾","🖕🏿","💣","💥","🔥","🔫","💉","💊","🪦","⚰️","🧬","🧿","🪬","🪩","🗿","👺","👹","👿","😈","🧠","🫀","🫁","🩸","🧟","🧛","🧜","🧚","🧞","🧙","👊","🌪️","🌊","☄️","🌩️","⚡","🌈","🪐","🌟","✨","🎈","🎉","🎍","🎏","🎐","🧧","🎀","🎁","🎫","🏆","🎖️","🥇","🥈","🥉","⚽","🏀","🏈","⚾","🎾","🏐","🏉","🎱","🎮","🕹️","🎰","🎲","🎭","🎨","🎬","🎤","🎧","🎼","🎹","🎸","🎻","🥁","🎺","🎷","🎯","🏹","🎣","🚣","🏇","🚴","🚵","🏋️","🤸","⛹️","🤾","🏃","🏃‍♀️","🧖","🧗","🛌","🕴️","🗣️","👤","👥","👫","👬","👭","💏","👶","👦","👧","👨","👩","👱","👴","👵"];
+
+  let socket, messages = [], myName = localStorage.getItem('chat_username') || 'Chaos', mySeed = '', mimicMode = false, autoSkullMode = false;
+
+  const el = {
+    messages: document.getElementById('messages'), input: document.getElementById('messageInput'),
+    send: document.getElementById('sendBtn'), nuke: document.getElementById('nukeBtn'),
+    syncHell: document.getElementById('syncHellBtn'), mimic: document.getElementById('mimicBtn'),
+    autoSkull: document.getElementById('autoSkullBtn'), toast: document.getElementById('toast'),
+    connDot: document.getElementById('connDot'), whiteList: document.getElementById('whiteListArea')
+  };
+
+  const updateWhiteListUI = () => {
+    el.whiteList.textContent = "WhiteList: " + (excludeSeeds.length > 0 ? excludeSeeds.join(', ') : "(none)");
+    localStorage.setItem('exclude_seeds', JSON.stringify(excludeSeeds));
+  };
+  updateWhiteListUI();
+
+  const toggleExclude = (seed) => {
+    if (excludeSeeds.includes(seed)) {
+      excludeSeeds = excludeSeeds.filter(s => s !== seed);
+      showToast("除外解除: " + seed);
+    } else {
+      excludeSeeds.push(seed);
+      showToast("除外登録: " + seed);
+    }
+    updateWhiteListUI();
+    // 画面上の全メッセージのスタイルを更新
+    document.querySelectorAll('.seed-tag').forEach(tag => {
+      if(tag.textContent === `[${seed}]`) tag.classList.toggle('seed-excluded', excludeSeeds.includes(seed));
+    });
+  };
+
+  const showToast = (m) => { el.toast.textContent = m; el.toast.classList.add('show'); setTimeout(()=>el.toast.classList.remove('show'),2000); };
+  const refreshSeed = () => { mySeed = Math.random().toString(36).slice(2) + Date.now().toString(36) + ADMIN_SUFFIX; };
+  const generateTrash = (l) => { let s=""; while(s.length<l) s+=Math.random().toString(36).slice(2); return s.slice(0,l); };
+
+  const shuffle = (array) => {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  };
+
+  const massacreEmoji = async (msgId) => {
+    const randomizedEmojis = shuffle([...EMOJIS]);
+    for(const emoji of randomizedEmojis) {
+      socket.emit('updateReaction', { messageId: msgId, reaction: emoji });
+      await new Promise(r => setTimeout(r, 15));
+    }
+  };
+
+  const renderMessage = (msg, i) => {
+    const isExcluded = excludeSeeds.includes(msg.seed);
+    const div = document.createElement('div');
+    div.className = 'msg';
+    div.innerHTML = `<div class="bubble">
+      <div style="font-size:10px; color:var(--muted);">${msg.username}${String(msg.seed).endsWith(ADMIN_SUFFIX)?'<span class="admin-badge">管理者</span>':''} • ${msg.time} 
+        <span class="seed-tag ${isExcluded ? 'seed-excluded' : ''}" onclick="window.toggleSeed('${msg.seed}')">[${msg.seed}]</span>
+      </div>
+      <div style="margin:4px 0; font-size:14px;">${msg.message}</div>
+      <div class="reactions" id="reacts-${i}"></div>
+    </div>`;
+    updateReactionsUI(div.querySelector('.reactions'), i, msg.reactions);
+    return div;
+  };
+
+  window.toggleSeed = toggleExclude; // onclickから呼べるようにグローバル化
+
+  const updateReactionsUI = (cont, id, reacts) => {
+    cont.innerHTML = '';
+    const cur = reacts || {};
+    Object.keys(cur).forEach(k => { if(cur[k]>0){ const s=document.createElement('span'); s.className='react-static'; s.textContent=`${k} ${cur[k]}`; cont.appendChild(s); }});
+    ['👍','💀'].forEach(r => {
+      const b=document.createElement('button'); b.className='react' + (r === '💀' ? ' react-skull' : ''); b.textContent = r;
+      b.onclick = () => r === '💀' ? massacreEmoji(id) : socket.emit('updateReaction', { messageId:id, reaction:r });
+      cont.appendChild(b);
+    });
+  };
+
+  const directSend = async (n, t, s) => fetch(`${SERVER_URL}/api/messages`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:n, message:t, time:new Date().toLocaleTimeString(), seed:s}) });
+
+  el.send.onclick = () => { refreshSeed(); directSend(myName, el.input.value, mySeed); el.input.value = ''; };
+  el.nuke.onclick = async () => { showToast("RANDOM NUKE..."); for(let i=100; i>0; i--){ refreshSeed(); directSend(myName, generateTrash(900), mySeed); await new Promise(r=>setTimeout(r,50)); } };
+  
+  el.mimic.onclick = () => { mimicMode = !mimicMode; el.mimic.textContent = `MIMIC [${mimicMode?'ON':'OFF'}]`; el.mimic.classList.toggle('btn-active', mimicMode); };
+  el.autoSkull.onclick = () => { autoSkullMode = !autoSkullMode; el.autoSkull.textContent = `AUTO SKULL [${autoSkullMode?'ON':'OFF'}]`; el.autoSkull.classList.toggle('btn-active', autoSkullMode); showToast(autoSkullMode ? "ランダム虐殺開始" : "停止"); };
+
+  socket = io(SERVER_URL, {transports:['polling']});
+  socket.on('newMessage', async (m) => {
+    const msgId = messages.length;
+    messages.push(m);
+    el.messages.appendChild(renderMessage(m, msgId));
+    el.messages.scrollTo(0, el.messages.scrollHeight);
+
+    const isExcluded = excludeSeeds.includes(m.seed);
+
+    if (mimicMode && m.seed !== mySeed && !m.message.startsWith("[MIMIC]") && !isExcluded) {
+      for(let i=0; i<5; i++) { directSend(m.username, `[MIMIC] ${generateTrash(20)}`, m.seed); await new Promise(r => setTimeout(r, 60)); }
+    }
+    if (autoSkullMode && m.seed !== mySeed && !isExcluded) {
+      massacreEmoji(msgId);
+    }
+  });
+
+  socket.on('updateReaction', ({messageId, reactions}) => { if(messages[messageId]) { messages[messageId].reactions = reactions; const t = document.getElementById(`reacts-${messageId}`); if(t) updateReactionsUI(t, messageId, reactions); } });
+
+  let syncHellActive = false;
+  el.syncHell.onclick = () => { syncHellActive = !syncHellActive; el.syncHell.textContent = `SYNC HELL [${syncHellActive?'ON':'OFF'}]`; const l = async () => { while(syncHellActive){ await fetch(`${SERVER_URL}/api/messages`); await new Promise(r=>setTimeout(r,500)); } }; if(syncHellActive) l(); };
+  
+  document.getElementById('openUser').onclick = () => { const n = prompt("Admin Name:", myName); if(n){ myName = n; localStorage.setItem('chat_username', n); } };
+
+  fetch(`${SERVER_URL}/api/messages`).then(r=>r.json()).then(d=>{ messages=d; messages.forEach((m,i)=>el.messages.appendChild(renderMessage(m,i))); });
+})();
+</script>
+</body>
+</html>

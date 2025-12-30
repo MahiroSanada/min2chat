@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>min2 Chat - Rolling Seed</title>
+<meta name="color-scheme" content="light dark" />
+<style>
+:root{ --bg: #0f1221; --panel: #171a2b; --panel-2: #121527; --text: #e8ebff; --muted: #a7b0d6; --accent: #6c8cff; --accent-2: #a46cff; --danger: #ff5b6e; --success: #4cd38a; --warning: #ffd35b; --border: #252a45; --bubble: #1c2040; --bubble-self: #2a356b; --shadow: 0 10px 30px rgba(0,0,0,0.35); --radius: 14px; --radius-sm: 10px; --radius-lg: 22px; --admin-bg: #3b2850; --admin-text: #ffdbe1; }
+* { box-sizing: border-box; }
+html, body { height:100%; margin:0; padding:0; }
+body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif; background: radial-gradient(1200px 600px at -10% -10%, rgba(108,140,255,0.18), transparent 60%), radial-gradient(800px 500px at 110% -10%, rgba(164,108,255,0.18), transparent 60%), radial-gradient(900px 500px at 50% 110%, rgba(76,211,138,0.10), transparent 60%), var(--bg); color: var(--text); }
+.app { display:flex; flex-direction:column; height:100dvh; max-width:900px; margin:0 auto; }
+header.appbar { position:sticky; top:0; z-index:10; display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background: linear-gradient(180deg, rgba(23,26,43,0.9), rgba(23,26,43,0.75)); backdrop-filter: blur(10px); border-bottom:1px solid var(--border); box-shadow:var(--shadow); }
+.brand { display:flex; align-items:center; gap:10px; }
+.logo { width:28px; height:28px; border-radius:10px; background: conic-gradient(from 210deg, var(--accent), var(--accent-2), var(--success), var(--accent)); box-shadow: 0 0 20px rgba(108,140,255,0.45), inset 0 0 20px rgba(255,255,255,0.05); }
+.title { font-weight:700; letter-spacing:0.2px; }
+.status { display:flex; align-items:center; gap:8px; font-size:13px; color: var(--muted); }
+.dot { width:10px; height:10px; border-radius:50%; background: var(--warning); box-shadow:0 0 0 4px rgba(255,211,91,0.15); }
+.dot.online { background: var(--success); box-shadow:0 0 0 4px rgba(76,211,138,0.15); }
+.toolbar { display:flex; gap:8px; }
+button.btn { appearance:none; border:1px solid var(--border); color: var(--text); background: linear-gradient(180deg, var(--panel), var(--panel-2)); border-radius:10px; padding:8px 12px; font-weight:600; cursor:pointer; transition:transform .06s ease, border-color .2s ease, background .2s ease; }
+button.btn:hover { border-color:#2f3761; }
+button.btn:active { transform: translateY(1px) scale(0.99); }
+.btn.accent { border-color:#2f3761; }
+.btn.danger { border-color:#503046; background: linear-gradient(180deg, #3a1b2a, #321727); color:#ffdbe1; }
+main { flex:1; overflow:auto; padding:14px 12px 0 12px; }
+.notice { text-align:center; color: var(--muted); font-size:13px; margin:8px 0 16px; }
+.messages { display:flex; flex-direction:column; gap:10px; padding-bottom:16px; }
+.msg { display:flex; gap:10px; max-width:92%; transition:transform .2s ease, background .2s ease, box-shadow .2s ease; }
+.msg.self { align-self:flex-end; flex-direction:row-reverse; }
+.avatar { width:36px; height:36px; border-radius:10px; background:#1a1f3b; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:#b9c3ff; font-weight:700; text-transform:uppercase; flex-shrink:0; }
+.bubble { background: var(--bubble); border:1px solid var(--border); border-radius:14px; padding:10px 12px; box-shadow:var(--shadow); min-width:120px; }
+.self .bubble { background: var(--bubble-self); border-color:#36407a; }
+.meta { display:flex; align-items:center; gap:6px; color: var(--muted); font-size:12px; margin-bottom:6px; }
+.name { font-weight:700; color:#d6dcff; display:inline-flex; align-items:center; gap:8px; white-space: nowrap; }
+.time-custom { font-style: normal; color: var(--muted); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.text { white-space:pre-wrap; word-wrap:break-word; line-height:1.5; color: var(--text); }
+.reactions { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.react, .react-static { display:inline-flex; align-items:center; gap:6px; font-size:13px; padding:6px 8px; border-radius:30px; border:1px solid var(--border); background: linear-gradient(180deg, #181c35, #131731); color:#d8dbff; cursor:pointer; user-select:none; transition: transform 0.1s; }
+.react:active { transform: scale(0.9); }
+footer.composer { position:sticky; bottom:0; z-index:10; background: linear-gradient(180deg, rgba(23,26,43,0.75), rgba(18,21,39,0.9)); border-top:1px solid var(--border); padding:12px; box-shadow:var(--shadow); }
+.row { display:flex; gap:10px; align-items:flex-start; }
+.input { flex:1; display:flex; padding:8px; gap:8px; border:1px solid var(--border); border-radius:var(--radius); background: linear-gradient(180deg, #151936, #10132b); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); overflow: hidden; }
+.u-box { display:flex; align-items:center; gap:8px; border-right:1px solid var(--border); padding-right:8px; max-width: 200px; flex-shrink: 0; }
+.u-tag { display:flex; align-items:center; gap:8px; border:1px dashed #2a315a; border-radius:10px; padding:6px 8px; color:#c3caff; background:#121631; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+textarea { flex:1; resize:none; border:0; outline:0; background:transparent; color: var(--text); font:inherit; padding:4px 2px; min-height:44px; }
+.toast { position:fixed; bottom:14px; left:50%; transform:translateX(-50%); background:#121631; color:#e6e9ff; border:1px solid var(--border); border-radius:12px; padding:10px 14px; box-shadow:var(--shadow); font-size:14px; opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease; z-index:100; }
+.toast.show { opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(-4px); }
+.modal-backdrop { position:fixed; inset:0; background:rgba(5,6,12,0.55); display:none; align-items:center; justify-content:center; padding:16px; z-index:20; }
+.modal-backdrop.show { display:flex; }
+.modal { width:min(520px,100%); background:#141834; border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow); padding:16px; display:flex; flex-direction:column; gap:12px; }
+.field { display:flex; flex-direction:column; gap:8px; }
+.field label { font-size:13px; color: var(--muted); }
+.field input { width:100%; padding:10px; border:1px solid var(--border); border-radius:10px; background:#0f1330; color: var(--text); }
+.actions { display:flex; gap:8px; justify-content:flex-end; margin-top:6px; }
+@media (max-width:600px) { .u-box { display:none; } .msg { max-width:100%; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="appbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"></div>
+      <div class="title">min2 Chat</div>
+    </div>
+    <div class="status">
+      <div id="connDot" class="dot"></div>
+      <div id="connText">接続中...</div>
+      <span aria-hidden="true">•</span>
+      <div id="userCount">オンライン: -</div>
+    </div>
+    <div class="toolbar">
+      <button id="openUser" class="btn" type="button">プロフィール</button>
+      <button id="openAdmin" class="btn danger" type="button">管理</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="notice" class="notice">シード値は常に変動し、末尾は常に「1123」です。</div>
+    <div id="messages" class="messages" aria-busy="true"></div>
+  </main>
+
+  <footer class="composer">
+    <div class="row">
+      <div class="input">
+        <div class="u-box">
+          <div class="u-tag"><span>あなた</span><strong id="usernameTag"></strong></div>
+          <button id="editUser" class="btn" type="button">編集</button>
+        </div>
+        <textarea id="messageInput" placeholder="メッセージを入力..."></textarea>
+      </div>
+      <div class="send"><button id="sendBtn" class="btn accent" type="button">送信</button></div>
+    </div>
+  </footer>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<div id="userModal" class="modal-backdrop">
+  <div class="modal">
+    <h3>プロフィール設定</h3>
+    <div class="field">
+      <label for="username">名前</label>
+      <input id="username" type="text" placeholder="例: たろう" />
+    </div>
+    <div class="field">
+      <label for="userStatus">ステータス（時刻の代わりに表示されます）</label>
+      <input id="userStatus" type="text" placeholder="例: こんにちは" />
+    </div>
+    <div class="field">
+      <label for="seed">動的識別子 (常に更新中...)</label>
+      <input id="seed" type="text" readonly style="font-family: monospace;" />
+    </div>
+    <div class="actions">
+      <button id="userCancel" class="btn" type="button">閉じる</button>
+      <button id="userSave" class="btn accent" type="button">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="adminModal" class="modal-backdrop">
+  <div class="modal">
+    <h3>管理パネル</h3>
+    <div class="field"><label>一括削除パスワード</label><input id="adminPass" type="password" /></div>
+    <div class="field"><label>管理者ログイン</label><input id="adminAuth" type="password" /></div>
+    <div class="actions">
+      <button id="adminClose" class="btn" type="button">閉じる</button>
+      <button id="localClearBtn" class="btn" type="button">ローカル履歴消去</button>
+      <button id="adminAuthBtn" class="btn" type="button">認証</button>
+      <button id="clearBtn" class="btn danger" type="button">サーバー全削除</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+(() => {
+  'use strict';
+  const SERVER_URL = 'https://one.linco.cl';
+  const HISTORY_KEY = 'chat_local_history_v2';
+  let socket = null, messages = [], mySeed = '', myName = null, myStatus = 'こんにちは', sending = false;
+
+  const el = {
+    connDot: document.getElementById('connDot'), connText: document.getElementById('connText'),
+    userCount: document.getElementById('userCount'), messages: document.getElementById('messages'),
+    usernameTag: document.getElementById('usernameTag'), input: document.getElementById('messageInput'),
+    send: document.getElementById('sendBtn'), toast: document.getElementById('toast'),
+    userModal: document.getElementById('userModal'), userOpen: document.getElementById('openUser'),
+    userEdit: document.getElementById('editUser'), userSave: document.getElementById('userSave'),
+    userCancel: document.getElementById('userCancel'), username: document.getElementById('username'),
+    userStatus: document.getElementById('userStatus'), seed: document.getElementById('seed'),
+    adminModal: document.getElementById('adminModal'), adminOpen: document.getElementById('openAdmin'),
+    adminClose: document.getElementById('adminClose'), adminPass: document.getElementById('adminPass'),
+    clearBtn: document.getElementById('clearBtn'), localClearBtn: document.getElementById('localClearBtn'),
+    adminAuth: document.getElementById('adminAuth'), adminAuthBtn: document.getElementById('adminAuthBtn')
+  };
+
+  const saveHistory = (m) => localStorage.setItem(HISTORY_KEY, JSON.stringify(m));
+  const loadHistory = () => { try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; } };
+  const truncateName = (name) => { const s = String(name||''); return s.length > 24 ? s.slice(0, 21) + '...' : s; };
+  const sanitizeText = t => String(t||'').replace(/\u0000/g, '');
+
+  const showToast = (msg) => {
+    el.toast.textContent = msg; el.toast.classList.add('show');
+    clearTimeout(showToast._t); showToast._t = setTimeout(() => el.toast.classList.remove('show'), 1800);
+  };
+
+  // シード生成: 末尾に1123を強制
+  const makeSeed = () => {
+    const arr = new Uint8Array(12); // 少し短めにして末尾分を確保
+    crypto.getRandomValues(arr);
+    const hex = [...arr].map(x => x.toString(16).padStart(2, '0')).join('');
+    return hex + "1123";
+  };
+
+  // シードを常に更新し続けるループ (50ms間隔)
+  const startRollingSeed = () => {
+    setInterval(() => {
+      mySeed = makeSeed();
+      if (el.seed) el.seed.value = mySeed;
+    }, 50);
+  };
+
+  const isDuplicate = (msg, list) => list.some(m => m.seed===msg.seed && m.time===msg.time && m.message===msg.message && m.username===msg.username );
+
+  function renderMessage(msg, index) {
+    // 送信時のシードが記録されているため、判定はそのまま
+    const isSelf = msg.seed && msg.seed.endsWith('1123'); 
+    const wrap = document.createElement('div');
+    wrap.className = 'msg' + (isSelf ? ' self' : '');
+    wrap.dataset.index = index;
+    
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.textContent = (msg.username || '?').slice(0,2).toUpperCase();
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.innerHTML = `
+      <span class="name">${truncateName(sanitizeText(msg.username))}</span>
+      <span style="opacity:0.6">•</span>
+      <span class="time-custom">${sanitizeText(msg.time || '')}</span>
+    `;
+
+    const textEl = document.createElement('div');
+    textEl.className = 'text';
+    textEl.textContent = sanitizeText(msg.message);
+
+    const reactBar = document.createElement('div');
+    reactBar.className = 'reactions';
+
+    bubble.append(meta, textEl, reactBar);
+    wrap.append(avatar, bubble);
+
+    updateReactionUI(reactBar, msg.reactions, index);
+    return wrap;
+  }
+
+  function updateReactionUI(bar, reactions, messageId) {
+    bar.innerHTML = '';
+    const current = reactions || {};
+    Object.keys(current).sort((a,b) => (current[b]||0) - (current[a]||0)).forEach(key => {
+      if(current[key] > 0) {
+        const chip = document.createElement('span');
+        chip.className = 'react-static';
+        chip.textContent = `${key} ${current[key]}`;
+        bar.appendChild(chip);
+      }
+    });
+
+    ['👍', '😡'].forEach(r => {
+      const btn = document.createElement('button');
+      btn.className = 'react';
+      btn.textContent = r;
+      btn.onclick = () => {
+        btn.disabled = true;
+        socket.emit('updateReaction', { messageId, reaction: r });
+        setTimeout(() => btn.disabled = false, 1000);
+      };
+      bar.appendChild(btn);
+    });
+  }
+
+  async function sendMessage() {
+    if(sending) return;
+    const txt = el.input.value.trim();
+    if(!txt) return;
+    if(!myName) { showToast('名前を設定してください'); el.userModal.classList.add('show'); return; }
+    
+    sending = true; el.send.disabled = true;
+    // 送信した瞬間の mySeed が使用されます
+    const currentSeed = mySeed; 
+    try {
+      await fetch(`${SERVER_URL}/api/messages`, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ username:myName, message:txt, time: myStatus || 'こんにちは', seed:currentSeed })
+      });
+      el.input.value = ''; el.input.style.height = '44px';
+    } finally { sending = false; el.send.disabled = false; el.input.focus(); }
+  }
+
+  function setupSocket() {
+    socket = io(SERVER_URL, { transports:['polling'] });
+    socket.on('newMessage', msg => {
+      if(isDuplicate(msg, messages)) return;
+      const atBottom = (m => m.scrollHeight - m.scrollTop - m.clientHeight < 100)(document.querySelector('main'));
+      messages.push(msg); saveHistory(messages);
+      el.messages.appendChild(renderMessage(msg, messages.length-1));
+      if(atBottom) document.querySelector('main').scrollTo({top: 999999, behavior:'smooth'});
+    });
+    
+    socket.on('updateReaction', ({ messageId, reactions }) => {
+      if(!messages[messageId]) return;
+      messages[messageId].reactions = reactions || {};
+      saveHistory(messages);
+      const wrap = el.messages.querySelector(`.msg[data-index="${messageId}"]`);
+      if(wrap) updateReactionUI(wrap.querySelector('.reactions'), reactions, messageId);
+    });
+
+    socket.on('connect', () => { el.connDot.classList.add('online'); el.connText.textContent='オンライン'; });
+  }
+
+  el.userSave.addEventListener('click', () => {
+    myName = el.username.value.trim();
+    myStatus = el.userStatus.value.trim() || 'こんにちは';
+    localStorage.setItem('chat_username', myName);
+    localStorage.setItem('chat_status', myStatus);
+    el.usernameTag.textContent = truncateName(myName);
+    el.userModal.classList.remove('show');
+    showToast('保存しました');
+  });
+
+  el.userOpen.addEventListener('click', () => {
+    el.username.value = myName || '';
+    el.userStatus.value = myStatus || 'こんにちは';
+    el.userModal.classList.add('show');
+  });
+
+  el.send.addEventListener('click', sendMessage);
+  el.input.addEventListener('keydown', e => { if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); } });
+  el.adminOpen.addEventListener('click', () => el.adminModal.classList.add('show'));
+  el.adminClose.addEventListener('click', () => el.adminModal.classList.remove('show'));
+  el.userCancel.addEventListener('click', () => el.userModal.classList.remove('show'));
+
+  el.localClearBtn.addEventListener('click', () => {
+    if(confirm('ローカル履歴を消去しますか？')){
+      messages = []; saveHistory([]); el.messages.innerHTML = '';
+      showToast('消去完了'); el.adminModal.classList.remove('show');
+    }
+  });
+
+  (async () => {
+    myName = localStorage.getItem('chat_username');
+    myStatus = localStorage.getItem('chat_status') || 'こんにちは';
+    el.usernameTag.textContent = myName ? truncateName(myName) : '未設定';
+    
+    // シードの更新ループを開始
+    startRollingSeed();
+
+    try {
+      const res = await fetch(`${SERVER_URL}/api/messages`);
+      const serverData = await res.json();
+      let localData = loadHistory();
+      serverData.forEach(sm => { if(!isDuplicate(sm, localData)) localData.push(sm); });
+      messages = localData; saveHistory(messages);
+      el.messages.innerHTML = '';
+      messages.forEach((m,i) => el.messages.appendChild(renderMessage(m,i)));
+    } catch(e) {}
+    
+    el.messages.parentElement.setAttribute('aria-busy','false');
+    setupSocket();
+  })();
+})();
+</script>
+</body>
+</html>
