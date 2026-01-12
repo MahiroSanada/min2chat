@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>min2 Chat</title>
+  <meta name="color-scheme" content="light dark" />
+<style>
+:root {
+	--bg: #0f1221;
+	--panel: #171a2b;
+	--panel-2: #121527;
+	--text: #e8ebff;
+	--muted: #a7b0d6;
+	--accent: #6c8cff;
+	--accent-2: #a46cff;
+	--danger: #ff5b6e;
+	--success: #4cd38a;
+	--warning: #ffd35b;
+	--border: #252a45;
+	--bubble: #1c2040;
+	--bubble-self: #2a356b;
+	--shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+	--radius: 14px;
+	--radius-sm: 10px;
+	--radius-lg: 22px;
+	--admin-bg: #3b2850;
+	--admin-text: #ffdbe1;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+	background: radial-gradient(1200px 600px at -10% -10%, rgba(108, 140, 255, 0.18), transparent 60%),
+		radial-gradient(800px 500px at 110% -10%, rgba(164, 108, 255, 0.18), transparent 60%),
+		radial-gradient(900px 500px at 50% 110%, rgba(76, 211, 138, 0.10), transparent 60%),
+		var(--bg);
+	color: var(--text);
+}
+
+.app {
+	display: flex;
+	flex-direction: column;
+	height: 100dvh;
+	max-width: 900px;
+	margin: 0 auto;
+}
+
+header.appbar {
+	position: sticky;
+	top: 0;
+	z-index: 10;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 14px 16px;
+	background: linear-gradient(180deg, rgba(23, 26, 43, 0.9), rgba(23, 26, 43, 0.75));
+	backdrop-filter: blur(10px);
+	border-bottom: 1px solid var(--border);
+	box-shadow: var(--shadow);
+}
+
+.brand {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.logo {
+	width: 28px;
+	height: 28px;
+	border-radius: 10px;
+	background: conic-gradient(from 210deg, var(--accent), var(--accent-2), var(--success), var(--accent));
+	box-shadow: 0 0 20px rgba(108, 140, 255, 0.45), inset 0 0 20px rgba(255, 255, 255, 0.05);
+}
+
+.title {
+	font-weight: 700;
+	letter-spacing: 0.2px;
+}
+
+.status {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+	color: var(--muted);
+}
+
+.dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: var(--warning);
+	box-shadow: 0 0 0 4px rgba(255, 211, 91, 0.15);
+}
+
+.dot.online {
+	background: var(--success);
+	box-shadow: 0 0 0 4px rgba(76, 211, 138, 0.15);
+}
+
+.dot.offline {
+	background: var(--danger);
+	box-shadow: 0 0 0 4px rgba(255, 91, 110, 0.15);
+}
+
+.toolbar {
+	display: flex;
+	gap: 8px;
+}
+
+button.btn {
+	appearance: none;
+	border: 1px solid var(--border);
+	color: var(--text);
+	background: linear-gradient(180deg, var(--panel), var(--panel-2));
+	border-radius: 10px;
+	padding: 8px 12px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: transform .06s ease, border-color .2s ease, background .2s ease;
+}
+
+button.btn:hover {
+	border-color: #2f3761;
+}
+
+button.btn:active {
+	transform: translateY(1px) scale(0.99);
+}
+
+.btn.accent {
+	border-color: #2f3761;
+}
+
+.btn.danger {
+	border-color: #503046;
+	background: linear-gradient(180deg, #3a1b2a, #321727);
+	color: #ffdbe1;
+}
+
+main {
+	flex: 1;
+	overflow: auto;
+	padding: 14px 12px 0 12px;
+}
+
+.notice {
+	text-align: center;
+	color: var(--muted);
+	font-size: 13px;
+	margin: 8px 0 16px;
+}
+
+.messages {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding-bottom: 16px;
+}
+
+.msg {
+	display: flex;
+	gap: 10px;
+	max-width: 92%;
+	transition: transform .2s ease, background .2s ease, box-shadow .2s ease;
+}
+
+.msg.self {
+	align-self: flex-end;
+	flex-direction: row-reverse;
+}
+
+.avatar {
+	width: 36px;
+	height: 36px;
+	border-radius: 10px;
+	background: #1a1f3b;
+	border: 1px solid var(--border);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #b9c3ff;
+	font-weight: 700;
+	text-transform: uppercase;
+}
+
+.bubble {
+	background: var(--bubble);
+	border: 1px solid var(--border);
+	border-radius: 14px;
+	padding: 10px 12px;
+	box-shadow: var(--shadow);
+	min-width: 120px;
+}
+
+.self .bubble {
+	background: var(--bubble-self);
+	border-color: #36407a;
+}
+
+.meta {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--muted);
+	font-size: 12px;
+	margin-bottom: 6px;
+}
+
+.name {
+	font-weight: 700;
+	color: #d6dcff;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.admin-badge {
+	display: inline-block;
+	font-size: 11px;
+	padding: 4px 8px;
+	border-radius: 999px;
+	background: var(--admin-bg);
+	color: var(--admin-text);
+	font-weight: 700;
+	margin-left: 6px;
+	border: 1px solid rgba(255, 255, 255, 0.04);
+	box-shadow: 0 4px 14px rgba(59, 40, 80, 0.35);
+}
+
+.text {
+	white-space: pre-wrap;
+	word-wrap: break-word;
+	line-height: 1.5;
+	color: var(--text);
+}
+
+.reactions-wrap {
+	display: flex;
+	align-items: flex-start;
+}
+
+.reactions {
+	display: flex;
+	gap: 8px;
+	margin-top: 8px;
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+.ban-slot {
+	margin-left: auto;
+}
+
+.react,
+.react-static {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 13px;
+	padding: 6px 8px;
+	border-radius: 30px;
+	border: 1px solid var(--border);
+	background: linear-gradient(180deg, #181c35, #131731);
+	color: #d8dbff;
+	cursor: pointer;
+	user-select: none;
+	transition: transform .06s ease, border-color .2s ease, background .2s ease;
+}
+
+.react:hover {
+	border-color: #2f3761;
+}
+
+.react:active {
+	transform: translateY(1px) scale(0.99);
+}
+
+.react[disabled] {
+	opacity: 0.6;
+	pointer-events: none;
+}
+
+.react-static {
+	cursor: default;
+	opacity: 0.9;
+}
+
+footer.composer {
+	position: sticky;
+	bottom: 0;
+	z-index: 10;
+	background: linear-gradient(180deg, rgba(23, 26, 43, 0.75), rgba(18, 21, 39, 0.9));
+	border-top: 1px solid var(--border);
+	padding: 12px;
+	box-shadow: var(--shadow);
+}
+
+.row {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+}
+
+.input {
+	flex: 1;
+	display: flex;
+	padding: 8px;
+	gap: 8px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: linear-gradient(180deg, #151936, #10132b);
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.u-edit {
+	margin-left: auto;
+}
+
+textarea {
+	flex: 1;
+	resize: none;
+	border: 0;
+	outline: 0;
+	background: transparent;
+	color: var(--text);
+	font: inherit;
+	padding: 4px 2px;
+	min-height: 44px;
+	max-height: 160px;
+}
+
+.send {
+	display: flex;
+	gap: 10px;
+}
+.toast {
+	position: fixed;
+	top: 12px;
+	left: 50%;
+	transform: translateX(-50%);
+	background: #121631;
+	color: #e6e9ff;
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	padding: 10px 14px;
+	box-shadow: var(--shadow);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity .2s ease, transform .2s ease;
+	z-index: 999999;
+}
+.toast.show {
+	opacity: 1;
+	pointer-events: auto;
+	transform: translateX(-50%) translateY(-4px);
+}
+
+.modal-backdrop {
+	position: fixed;
+	inset: 0;
+	background: rgba(5, 6, 12, 0.55);
+	display: none;
+	align-items: center;
+	justify-content: center;
+	padding: 16px;
+	z-index: 20;
+}
+
+.modal-backdrop.show {
+	display: flex;
+}
+
+.modal {
+	width: min(520px, 100%);
+	background: #141834;
+	border: 1px solid var(--border);
+	border-radius: 16px;
+	box-shadow: var(--shadow);
+	padding: 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.modal h3 {
+	margin: 0;
+	font-size: 18px;
+}
+
+.field {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.field label {
+	font-size: 13px;
+	color: var(--muted);
+}
+
+.field input {
+	width: 100%;
+	padding: 10px;
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	background: #0f1330;
+	color: var(--text);
+}
+
+.actions {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+	margin-top: 6px;
+}
+
+.kbd {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+	background: #121631;
+	border: 1px solid var(--border);
+	border-bottom-color: #2a315a;
+	border-radius: 8px;
+	padding: 2px 6px;
+	color: #c2c9ff;
+}
+
+.btn.hijack {
+	border-color: #6b4a2f;
+	background: linear-gradient(180deg, #3b2414, #2b180e);
+	color: #ffd8c2;
+}
+
+.btn.hijack.hijack-active {
+	box-shadow: 0 6px 18px rgba(164,108,255,0.12);
+	border-color: #a46cff;
+	background: linear-gradient(180deg, #522f5a, #3b2140);
+}
+
+@media (max-width:600px) {
+
+	.msg {
+		max-width: 100%;
+	}
+
+	.toolbar {
+		gap: 6px;
+	}
+
+	button.btn {
+		padding: 7px 10px;
+	}
+}
+</style>
+</head>
+<body>
+  <div class="app">
+    <header class="appbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div class="title">min2 Chat</div>
+      </div>
+      <div class="status">
+        <div id="connDot" class="dot" title="接続状態"></div>
+        <div id="connText">接続中...</div>
+        <span aria-hidden="true">•</span>
+        <div id="userCount">オンライン: -</div>
+      </div>
+      <div class="toolbar">
+        <button id="openUser" class="btn" type="button">プロフィール</button>
+        <button id="toggleIgnoreClear" class="btn" type="button">削除無視OFF</button>
+		<button id="multiConnectBtn" class="btn" type="button">無限接続</button>
+        <button id="openAdmin" class="btn danger" type="button" title="管理">管理</button>
+      </div>
+    </header>
+    <main>
+      <div id="notice" class="notice">Shift+Enterで改行<br>Enterで送信</div>
+      <div id="messages" class="messages" aria-live="polite" aria-busy="true"></div>
+    </main>
+    <footer class="composer">
+      <div class="row">
+        <div class="input">
+          <textarea id="messageInput" placeholder="メッセージを入力..." aria-label="メッセージ入力"></textarea>
+        </div>
+        <div class="send">
+          <button id="sendBtn" class="btn accent" type="button">送信</button>
+          <button id="spamBtn" class="btn" type="button">連投</button>
+		  <button id="echoBtn" class="btn" type="button">連呼</button>
+		  <button id="reactLoopBtn" class="btn" type="button">リアクションループ</button>
+        </div>
+      </div>
+    </footer>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="userModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="userTitle">
+    <div class="modal" role="document">
+      <h3 id="userTitle">プロフィール</h3>
+      <div class="field">
+        <label for="username">ユーザー名</label>
+        <input id="username" type="text" placeholder="例: たろう" />
+      </div>
+      <div class="field">
+        <label for="seed"> あなたの識別子 <span class="kbd">seed</span> </label>
+        <input id="seed" type="text" />
+      </div>
+      <div class="actions">
+        <button id="userCancel" class="btn" type="button">閉じる</button>
+        <button id="userSave" class="btn accent" type="button">保存</button>
+      </div>
+    </div>
+  </div>
+  <div id="adminModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
+    <div class="modal" role="document">
+      <h3 id="adminTitle">管理パネル</h3>
+      <div class="actions">
+        <button id="adminClose" class="btn" type="button">閉じる</button>
+        <button id="clearBtn" class="btn danger" type="button">全メッセージ削除</button>
+        <button id="clearLoopBtn" class="btn danger" type="button">メッセージ削除ループ</button>
+		<button id="randomBanLoopBtn" class="btn danger" type="button">全員BAN</button>
+      </div>
+    </div>
+  </div>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+<script>
+(() => {
+	'use strict';
+
+	// ========================================================
+	// config / constants
+	// ========================================================
+	const SERVER_URL = 'https://one.linco.cl';
+	// ★ シードは自動回転させないが、ADMIN_SUFFIXは元のまま
+	const ADMIN_PASSWORD = 'min0001';
+	const ADMIN_SUFFIX = '1123';
+	const adminStorageKey = 'chat_admin_seeds_v1';
+	const REACTIONS = ['👍', '👎️', '❤', '🎉', '🔥', '😂', '❓️', '💩'];
+
+	// ========================================================
+	// DOM references
+	// ========================================================
+	const el = {
+		connDot: document.getElementById('connDot'),
+		connText: document.getElementById('connText'),
+		userCount: document.getElementById('userCount'),
+		messages: document.getElementById('messages'),
+		notice: document.getElementById('notice'),
+		usernameTag: document.getElementById('usernameTag'),
+		input: document.getElementById('messageInput'),
+		send: document.getElementById('sendBtn'),
+		spamBtn: document.getElementById('spamBtn'),
+		reactLoopBtn: document.getElementById('reactLoopBtn'),
+		toast: document.getElementById('toast'),
+		userModal: document.getElementById('userModal'),
+		userOpen: document.getElementById('openUser'),
+		userEdit: document.getElementById('editUser'),
+		userSave: document.getElementById('userSave'),
+		userCancel: document.getElementById('userCancel'),
+		username: document.getElementById('username'),
+		seed: document.getElementById('seed'),
+		adminModal: document.getElementById('adminModal'),
+		adminOpen: document.getElementById('openAdmin'),
+		adminClose: document.getElementById('adminClose'),
+		clearBtn: document.getElementById('clearBtn'),
+		toggleIgnoreClear: document.getElementById('toggleIgnoreClear'),
+		clearLoopBtn: document.getElementById('clearLoopBtn'),
+		randomBanLoopBtn: document.getElementById('randomBanLoopBtn'),
+		echoBtn: document.getElementById('echoBtn')
+	};
+
+	// ========================================================
+	// state
+	// ========================================================
+	let socket = null;
+	let messages = [];
+	let mySeed = null;
+	let myName = null;
+	let impersonatePersistent = null;
+	let sending = false;
+
+	// loops & intervals flags/refs
+	let _spamLoopRunning = false;
+	let _spamLoopInterval = null;
+
+	let _reactLoopRunning = false;
+	let _reactLoopInterval = null;
+
+	let _echoLoopRunning = false;
+
+	// シード回転は使わないが、クリア用に一応持っておく
+	let _seedRotationTimer = null;
+
+	let _clearLoopRunning = false;
+	let _clearLoopInterval = null;
+
+	let _randomBanLoopRunning = false;
+	let _randomBanLoopInterval = null;
+
+	const bannedSeedSet = new Set();
+	let adminSeeds = loadAdminSeeds();
+
+	// clear-ignore flags used when server clears messages
+	let ignoreClearActive = true;
+	let ignoreNextFetchClear = false;
+
+	// ========================================================
+	// storage helpers
+	// ========================================================
+	const storage = {
+		get name() {
+			return localStorage.getItem('chat_username') || '';
+		},
+		set name(v) {
+			localStorage.setItem('chat_username', v);
+		},
+		get seed() {
+			return localStorage.getItem('chat_seed') || '';
+		},
+		set seed(v) {
+			localStorage.setItem('chat_seed', v);
+		}
+	};
+
+	function loadAdminSeeds() {
+		try {
+			return new Set(JSON.parse(localStorage.getItem(adminStorageKey) || '[]'));
+		} catch {
+			return new Set();
+		}
+	}
+
+	// ========================================================
+	// small UI utilities
+	// ========================================================
+	const showToast = (msg, ms = 1800) => {
+		if (!el.toast) return;
+		el.toast.textContent = msg;
+		el.toast.classList.add('show');
+		clearTimeout(showToast._t);
+		showToast._t = setTimeout(() => el.toast.classList.remove('show'), ms);
+	};
+
+	const initials = name => (name || '?').trim().slice(0, 2).toUpperCase();
+
+	const sanitizeText = t => String(t || '').replace(/\u0000/g, '');
+
+	const isAtBottom = () => {
+		const m = document.querySelector('main');
+		if (!m) return true;
+		return m.scrollHeight - m.scrollTop - m.clientHeight < 80;
+	};
+
+	const scrollToBottom = smooth => {
+		const m = document.querySelector('main');
+		if (!m) return;
+		m.scrollTo({ top: m.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+	};
+
+	// ========================================================
+	// time / date helpers
+	// ========================================================
+	const nowTimeString = () => {
+		const d = new Date();
+		const y = d.getFullYear();
+		const m = String(d.getMonth() + 1).padStart(2, '0');
+		const day = String(d.getDate()).padStart(2, '0');
+		const hh = String(d.getHours()).padStart(2, '0');
+		const mm = String(d.getMinutes()).padStart(2, '0');
+		return `${y}/${m}/${day} ${hh}:${mm}`;
+	};
+
+	const isValidDateTimeString = (str) => {
+		const m = /^(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2})$/.exec(str);
+		if (!m) return false;
+		const mo = +m[2], d = +m[3], h = +m[4], mi = +m[5], y = +m[1];
+		if (mo < 1 || mo > 12) return false;
+		if (h < 0 || h > 23) return false;
+		if (mi < 0 || mi > 59) return false;
+		const lastDay = new Date(y, mo, 0).getDate();
+		if (d < 1 || d > lastDay) return false;
+		return true;
+	};
+
+	// ========================================================
+	// seed / admin helpers
+	// ========================================================
+	function isAdminSeed(seed) {
+		return typeof seed === 'string' && seed.endsWith(ADMIN_SUFFIX);
+	}
+
+	function isSeedAdmin(seed) {
+		if (!seed) return false;
+		if (adminSeeds.has(seed)) return true;
+		return String(seed).endsWith(ADMIN_SUFFIX);
+	}
+
+	function makeSeed() {
+		let base;
+		if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+			const arr = new Uint8Array(16);
+			crypto.getRandomValues(arr);
+			base = [...arr].map(x => x.toString(16).padStart(2, '0')).join('');
+		} else {
+			base = Math.random().toString(36).slice(2) + Date.now().toString(36);
+		}
+		return base + ADMIN_SUFFIX;
+	}
+
+	function makeRandomSeed() {
+		const arr = new Uint8Array(16);
+		crypto.getRandomValues(arr);
+		return [...arr].map(b => b.toString(16).padStart(2, '0')).join('');
+	}
+
+	function makeRandomSeedForSpam() {
+		const impersonatedSeed = impersonatePersistent?.seed ?? null;
+		const shouldBeAdmin = isAdminSeed(impersonatedSeed);
+		let base;
+		try {
+			base = makeSeed().replace(new RegExp(`${ADMIN_SUFFIX}$`), '');
+		} catch {
+			if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+				const arr = new Uint8Array(16);
+				crypto.getRandomValues(arr);
+				base = [...arr].map(x => x.toString(16).padStart(2, '0')).join('');
+			} else {
+				base = Math.random().toString(36).slice(2) + Date.now().toString(36);
+			}
+		}
+		return shouldBeAdmin ? base + ADMIN_SUFFIX : base;
+	}
+
+	// ========================================================
+	// message key / dedupe / impersonation helpers
+	// ========================================================
+	function getMessageKey(msg) {
+		if (!msg) return null;
+		if (msg.id != null) return String(msg.id);
+		if (msg.localId) return String(msg.localId);
+		return `${msg.seed||''}|${msg.time||''}|${msg.message||''}|${msg.username||''}`;
+	}
+
+	const isDuplicate = msg => messages.some(m => m.seed === msg.seed && m.time === msg.time && m.message === msg.message && m.username === msg.username);
+
+	const getImpersonationTime = (seed) => {
+		for (let i = messages.length - 1; i >= 0; i--) {
+			const m = messages[i];
+			if (m.seed === seed && typeof m.time === 'string') {
+				return isValidDateTimeString(m.time) ? nowTimeString() : m.time;
+			}
+		}
+		return nowTimeString();
+	};
+
+	// ========================================================
+	// rendering
+	// ========================================================
+	function renderMessage(msg, index) {
+		const isSelf = msg.seed === mySeed;
+		const isAdminMsg = isSeedAdmin(msg.seed);
+
+		const wrap = document.createElement('div');
+		wrap.className = 'msg' + (isSelf ? ' self' : '');
+		wrap.dataset.index = index;
+		wrap.dataset.seed = msg.seed;
+
+		const avatar = document.createElement('div');
+		avatar.className = 'avatar';
+		avatar.textContent = initials(msg.username);
+
+		const bubble = document.createElement('div');
+		bubble.className = 'bubble';
+
+		// meta
+		const meta = document.createElement('div');
+		meta.className = 'meta';
+
+		const nameEl = document.createElement('span');
+		nameEl.className = 'name';
+		nameEl.textContent = sanitizeText(msg.username || 'unknown');
+
+		if (isAdminMsg) {
+			const badge = document.createElement('span');
+			badge.className = 'admin-badge';
+			badge.textContent = '管理者';
+			nameEl.appendChild(badge);
+		}
+
+		const dot = document.createElement('span');
+		dot.textContent = '•';
+		dot.style.opacity = '0.6';
+
+		const timeEl = document.createElement('span');
+		timeEl.textContent = sanitizeText(msg.time || '');
+
+		meta.append(nameEl, dot, timeEl);
+
+		// text
+		const textEl = document.createElement('div');
+		textEl.className = 'text';
+		textEl.textContent = sanitizeText(msg.message || '');
+
+		// reactions & controls
+		const reactionsWrap = document.createElement('div');
+		reactionsWrap.className = 'reactions-wrap';
+
+		const reactions = document.createElement('div');
+		reactions.className = 'reactions';
+
+		// show existing counts sorted by count desc
+		const current = msg.reactions || {};
+		Object.keys(current).sort((a, b) => (current[b] || 0) - (current[a] || 0)).forEach(key => {
+			const cnt = current[key];
+			if (cnt > 0) {
+				const chip = document.createElement('span');
+				chip.className = 'react-static';
+				chip.textContent = `${key} ${cnt}`;
+				reactions.appendChild(chip);
+			}
+		});
+
+		// reaction buttons
+		REACTIONS.forEach(r => {
+			const btn = document.createElement('button');
+			btn.className = 'react';
+			btn.type = 'button';
+			btn.setAttribute('aria-label', `リアクション ${r}`);
+			btn.textContent = r;
+			btn.addEventListener('click', () => {
+				btn.disabled = true;
+				setTimeout(() => btn.disabled = false, 1000);
+				const msgId = Number(wrap.dataset.index);
+				if (socket && socket.connected) {
+					socket.emit('updateReaction', { messageId: msgId, reaction: r });
+				}
+			});
+			reactions.appendChild(btn);
+		});
+
+		const banSlot = document.createElement('div');
+		banSlot.className = 'ban-slot';
+
+		if (msg.seed !== mySeed) {
+			// BAN button
+			const banBtn = document.createElement('button');
+			banBtn.className = 'btn danger';
+			banBtn.type = 'button';
+			banBtn.textContent = 'BAN';
+			banBtn.addEventListener('click', async () => {
+				if (!confirm(`${msg.username} をBANしますか？`)) return;
+				banBtn.disabled = true;
+				await banSeed(msg.seed);
+				showToast(`${msg.username} をBANしました`);
+				setTimeout(() => banBtn.disabled = false, 1500);
+			});
+			banSlot.appendChild(banBtn);
+
+			// Hijack / impersonate button
+			const hijackBtn = document.createElement('button');
+			hijackBtn.className = 'btn hijack';
+			hijackBtn.type = 'button';
+
+			const refreshHijackLabel = () => {
+				if (impersonatePersistent && impersonatePersistent.seed === msg.seed) {
+					hijackBtn.textContent = '乗っ取り解除';
+					hijackBtn.classList.add('hijack-active');
+				} else {
+					hijackBtn.textContent = '乗っ取り';
+					hijackBtn.classList.remove('hijack-active');
+				}
+			};
+
+			hijackBtn.addEventListener('click', () => {
+				if (impersonatePersistent && impersonatePersistent.seed === msg.seed) {
+					if (!confirm(`${msg.username} の乗っ取りを解除しますか？`)) return;
+					impersonatePersistent = null;
+					showToast(`乗っ取りを解除しました: ${msg.username}`);
+					renderAll();
+					return;
+				}
+				if (!confirm(`${msg.username}（seed: ${msg.seed}）として投稿を継続的に行います。よろしいですか？`)) return;
+				impersonatePersistent = { seed: msg.seed, username: msg.username };
+				showToast(`乗っ取りを有効にしました: ${msg.username}`, 2000);
+				renderAll();
+				el.input?.focus();
+			});
+
+			refreshHijackLabel();
+			banSlot.appendChild(hijackBtn);
+		}
+
+		reactionsWrap.append(reactions, banSlot);
+		bubble.append(meta, textEl, reactionsWrap);
+		wrap.append(avatar, bubble);
+		return wrap;
+	}
+
+	function updateReactions(id, reactions) {
+		const wrap = el.messages?.querySelector(`.msg[data-index="${id}"]`);
+		if (!wrap) return;
+		const bar = wrap.querySelector('.reactions');
+		if (!bar) return;
+		bar.querySelectorAll('.react, .react-static').forEach(n => n.remove());
+
+		Object.keys(reactions || {}).sort((a, b) => (reactions[b] || 0) - (reactions[a] || 0)).forEach(key => {
+			const cnt = reactions[key];
+			if (cnt > 0) {
+				const chip = document.createElement('span');
+				chip.className = 'react-static';
+				chip.textContent = `${key} ${cnt}`;
+				bar.appendChild(chip);
+			}
+		});
+
+		REACTIONS.forEach(r => {
+			const btn = document.createElement('button');
+			btn.className = 'react';
+			btn.type = 'button';
+			btn.textContent = r;
+			btn.setAttribute('aria-label', `リアクション ${r}`);
+			btn.addEventListener('click', () => {
+				btn.disabled = true;
+				setTimeout(() => btn.disabled = false, 1000);
+				socket?.emit('updateReaction', { messageId: id, reaction: r });
+			});
+			bar.appendChild(btn);
+		});
+	}
+
+	function renderAll() {
+		if (!el.messages) return;
+		el.messages.innerHTML = '';
+		messages.forEach((msg, i) => el.messages.appendChild(renderMessage(msg, i)));
+		el.messages.parentElement?.setAttribute('aria-busy', 'false');
+		scrollToBottom(false);
+		if (el.toggleIgnoreClear) el.toggleIgnoreClear.textContent = ignoreClearActive ? '削除無視OFF' : '削除無視';
+	}
+
+	// ========================================================
+	// network: fetch / send / admin actions
+	// ========================================================
+	async function fetchMessages() {
+		try {
+			el.messages?.parentElement?.setAttribute('aria-busy', 'true');
+			const res = await fetch(`${SERVER_URL}/api/messages`, { cache: 'no-store' });
+			if (!res.ok) throw new Error('fetch failed');
+			const data = await res.json();
+			if (!Array.isArray(data)) throw new Error('invalid data');
+
+			if (ignoreClearActive && ignoreNextFetchClear && Array.isArray(data) && data.length === 0) {
+				ignoreNextFetchClear = false;
+				el.messages?.parentElement?.setAttribute('aria-busy', 'false');
+				return;
+			}
+
+			if (ignoreClearActive && ignoreNextFetchClear) {
+				const serverKeys = new Set();
+				for (const m of data) {
+					const k = getMessageKey(m);
+					if (k) serverKeys.add(k);
+				}
+				const merged = data.slice();
+				for (const m of messages) {
+					const k = getMessageKey(m);
+					if (k && !serverKeys.has(k)) merged.push(m);
+				}
+				messages = merged;
+				ignoreNextFetchClear = false;
+			} else {
+				messages = data;
+			}
+			renderAll();
+		} catch (e) {
+			el.messages?.parentElement?.setAttribute('aria-busy', 'false');
+			showToast('メッセージ取得に失敗しました');
+		}
+	}
+
+	async function fetchUserCount() {
+		try {
+			const res = await fetch(`${SERVER_URL}/user`, { cache: 'no-store' });
+			if (!res.ok) throw new Error('user fetch failed');
+			const j = await res.json();
+			if (el.userCount) el.userCount.textContent = `オンライン: ${j.userCount || '-'}`;
+		} catch {
+			if (el.userCount) el.userCount.textContent = 'オンライン: -';
+		}
+	}
+
+	async function clearAllMessages(pass) {
+		try {
+			const res = await fetch(`${SERVER_URL}/api/pass`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', 'x-requested-with': 'fetch' },
+				body: JSON.stringify({ password: pass })
+			});
+			const j = await res.json().catch(() => ({}));
+			if (!res.ok) throw new Error('clear failed');
+			showToast(j.message || '履歴を削除しました');
+		} catch {
+			showToast('削除に失敗しました');
+		}
+	}
+
+	async function sendMessage() {
+		if (sending) return;
+		const txt = sanitizeText(el.input?.value).trim();
+		if (!txt) return;
+		if (!myName) {
+			showToast('ユーザー名を設定してください');
+			openUserModal();
+			return;
+		}
+		if (!mySeed) {
+			mySeed = storage.seed = makeSeed();
+			if (el.seed) el.seed.value = mySeed;
+		}
+
+		const useSeed = impersonatePersistent?.seed ?? mySeed;
+		const useName = impersonatePersistent?.username ?? myName;
+		const useTime = impersonatePersistent ? getImpersonationTime(useSeed) : nowTimeString();
+
+		const payload = { username: useName, message: txt, time: useTime, seed: useSeed };
+
+		sending = true;
+		if (el.send) el.send.disabled = true;
+		try {
+			const res = await fetch(`${SERVER_URL}/api/messages`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(payload)
+			});
+			if (!res.ok) throw new Error('send failed');
+			if (el.input) { el.input.value = ''; autoResize(el.input); }
+		} catch {
+			showToast('送信に失敗しました');
+		} finally {
+			sending = false;
+			if (el.send) el.send.disabled = false;
+			el.input?.focus();
+		}
+	}
+
+	async function sendSpamMessage() {
+		const txt = sanitizeText(el.input?.value).trim();
+		if (!txt) return;
+		if (!myName) {
+			showToast('ユーザー名を設定してください');
+			openUserModal();
+			return;
+		}
+		const useName = impersonatePersistent?.username ?? myName;
+		const randomSeed = makeRandomSeedForSpam();
+		const useSeed = impersonatePersistent?.seed ?? randomSeed;
+		const useTime = impersonatePersistent ? getImpersonationTime(useSeed) : nowTimeString();
+
+		const payload = { username: useName, message: txt, time: useTime, seed: useSeed };
+
+		try {
+			await fetch(`${SERVER_URL}/api/messages`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(payload)
+			});
+		} catch (err) {
+			console.error('sendSpamMessage failed', err);
+		}
+	}
+
+	// ban a seed
+	async function banSeed(targetSeed) {
+		try {
+			if (!targetSeed) return false;
+			if (!mySeed) return false;
+			if (String(targetSeed) === String(mySeed)) return false;
+
+			const banName = impersonatePersistent?.username ?? myName;
+			const url = `${SERVER_URL}/api/ban/${encodeURIComponent(targetSeed)}/${encodeURIComponent(banName)}`;
+
+			const res = await fetch(url, { method: 'POST', credentials: 'omit' });
+			if (res && res.ok) {
+				bannedSeedSet.add(targetSeed);
+				return true;
+			}
+			return false;
+		} catch {
+			return false;
+		}
+	}
+
+	function getBanTargetSeeds() {
+		const set = new Set();
+		for (const m of messages) {
+			if (!m.seed) continue;
+			if (m.seed === mySeed) continue;
+			if (bannedSeedSet.has(m.seed)) continue;
+			set.add(m.seed);
+		}
+		return [...set];
+	}
+
+	function startRandomBanLoop() {
+		if (_randomBanLoopRunning) return;
+		_randomBanLoopRunning = true;
+
+		(async () => {
+			try {
+				const targets = getBanTargetSeeds();
+				if (targets.length === 0) { showToast('BAN対象がいません'); return; }
+				await Promise.all(targets.map(seed => banSeed(seed)));
+				showToast(`全員BAN完了（${targets.length}人）`);
+			} catch {
+				showToast('全員BANに失敗しました');
+			} finally {
+				_randomBanLoopRunning = false;
+				if (_randomBanLoopInterval) { clearInterval(_randomBanLoopInterval); _randomBanLoopInterval = null; }
+			}
+		})();
+	}
+
+	// ========================================================
+	// loops: spam / react / clear / echo
+	// ========================================================
+	function startSpamLoop() {
+		if (_spamLoopRunning) return;
+		_spamLoopRunning = true;
+		if (el.spamBtn) { el.spamBtn.textContent = '停止'; el.spamBtn.classList.add('danger'); }
+		_spamLoopInterval = setInterval(() => {
+			if (!el.input?.value.trim()) return;
+			sendSpamMessage();
+		}, 100);
+		showToast('連投を開始しました');
+	}
+
+	function stopSpamLoop() {
+		if (!_spamLoopRunning) return;
+		_spamLoopRunning = false;
+		if (_spamLoopInterval) { clearInterval(_spamLoopInterval); _spamLoopInterval = null; }
+		if (el.spamBtn) { el.spamBtn.textContent = '連投'; el.spamBtn.classList.remove('danger'); }
+		showToast('連投を停止しました');
+	}
+
+	function toggleSpamLoop() { if (_spamLoopRunning) stopSpamLoop(); else startSpamLoop(); }
+
+	function performParallelRandomReactions(count) {
+		if (!socket || !socket.connected) return;
+		for (let i = 0; i < count; i++) {
+			const idx = (Math.random() * messages.length) | 0;
+			const reaction = REACTIONS[(Math.random() * REACTIONS.length) | 0];
+			socket.emit('updateReaction', { messageId: idx, reaction });
+		}
+	}
+
+	function startReactLoop() {
+		if (_reactLoopRunning) return;
+		_reactLoopRunning = true;
+		if (el.reactLoopBtn) { el.reactLoopBtn.textContent = '停止'; el.reactLoopBtn.classList.add('danger'); }
+		_reactLoopInterval = setInterval(() => {
+			if (!socket || !socket.connected) return;
+			if (!messages || messages.length === 0) return;
+			const perTick = Math.ceil(1000 / 10);
+			performParallelRandomReactions(perTick);
+		}, 100);
+	}
+
+	function stopReactLoop() {
+		if (!_reactLoopRunning) return;
+		_reactLoopRunning = false;
+		if (_reactLoopInterval) { clearInterval(_reactLoopInterval); _reactLoopInterval = null; }
+		if (el.reactLoopBtn) { el.reactLoopBtn.textContent = 'リアクションループ'; el.reactLoopBtn.classList.remove('danger'); }
+		showToast('リアクションループを停止しました', 1200);
+	}
+
+	function toggleReactLoop() { if (_reactLoopRunning) stopReactLoop(); else startReactLoop(); }
+
+	function startClearMessageLoop() {
+		if (_clearLoopRunning) return;
+		_clearLoopRunning = true;
+		if (el.clearLoopBtn) el.clearLoopBtn.textContent = '削除ループ停止';
+		_clearLoopInterval = setInterval(() => { try { clearAllMessages(ADMIN_PASSWORD); } catch {} }, 0);
+	}
+
+	function stopClearMessageLoop() {
+		if (!_clearLoopRunning) return;
+		_clearLoopRunning = false;
+		if (el.clearLoopBtn) el.clearLoopBtn.textContent = 'メッセージ削除ループ';
+		if (_clearLoopInterval) { clearInterval(_clearLoopInterval); _clearLoopInterval = null; }
+	}
+
+	function toggleClearMessageLoop() { if (_clearLoopRunning) stopClearMessageLoop(); else startClearMessageLoop(); }
+
+	// echoMessage: post back incoming message repeatedly while _echoLoopRunning
+	function echoMessage(msg) {
+		if (!msg || !msg.seed || !msg.message) return;
+		if (!_echoLoopRunning) return;
+		if (msg.seed === mySeed) return;
+
+		const useName = msg.username;
+		const useSeed = msg.seed;
+		const text = msg.message;
+
+		const timer = setInterval(() => {
+			if (!_echoLoopRunning) {
+				clearInterval(timer);
+				return;
+			}
+			fetch(`${SERVER_URL}/api/messages`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ username: useName, message: text, time: nowTimeString(), seed: useSeed })
+			}).catch(console.error);
+		}, 1000);
+	}
+
+	// ========================================================
+	// socket setup & events
+	// ========================================================
+	function setupSocket() {
+		socket = io(SERVER_URL, {
+			transports: ['polling'],
+			reconnection: true,
+			reconnectionAttempts: Infinity,
+			reconnectionDelay: 1000,
+			reconnectionDelayMax: 5000,
+			pingInterval: 20000,
+			pingTimeout: 5000
+		});
+
+		socket.on('connect', () => {
+			el.connDot?.classList.replace('offline', 'online');
+			if (el.connText) el.connText.textContent = 'オンライン';
+			fetchUserCount();
+		});
+
+		socket.on('disconnect', () => {
+			el.connDot?.classList.replace('online', 'offline');
+			if (el.connText) el.connText.textContent = '切断';
+		});
+
+		socket.on('newMessage', msg => {
+			if (isDuplicate(msg)) return;
+			const atBot = isAtBottom();
+			messages.push(msg);
+			el.messages?.appendChild(renderMessage(msg, messages.length - 1));
+
+			// echo (if enabled)
+			echoMessage(msg);
+
+			if (atBot) scrollToBottom(true);
+		});
+
+		socket.on('updateReaction', ({ messageId, reactions }) => {
+			if (typeof messageId !== 'number') return;
+			if (!messages[messageId]) return;
+			messages[messageId].reactions = reactions || {};
+			updateReactions(messageId, reactions);
+		});
+
+		socket.on('clearMessages', () => {
+			if (ignoreClearActive) {
+				ignoreNextFetchClear = true;
+				showToast('削除リクエストを無視しました', 1800);
+				return;
+			}
+			messages = [];
+			if (el.messages) el.messages.innerHTML = '';
+			showToast('管理者により履歴が削除されました', 2000);
+		});
+	}
+
+	// ========================================================
+	// UI modal helpers & auto-resize
+	// ========================================================
+	function autoResize(ta) {
+		if (!ta) return;
+		ta.style.height = 'auto';
+		ta.style.height = Math.min(160, Math.max(44, ta.scrollHeight)) + 'px';
+	}
+
+	function openUserModal() {
+		if (!el.userModal) return;
+		if (el.username) el.username.value = myName || '';
+		if (el.seed) el.seed.value = mySeed || '';
+		if (el.userSave) { el.userSave.disabled = false; el.userSave.setAttribute('type', 'button'); }
+		el.userModal.classList.add('show');
+		setTimeout(() => el.username?.focus(), 50);
+	}
+
+	function closeUserModal() { el.userModal?.classList.remove('show'); }
+
+	function openAdminModal() { el.adminModal?.classList.add('show'); }
+
+	function closeAdminModal() { el.adminModal?.classList.remove('show'); }
+
+	// ========================================================
+	// UI event bindings
+	// ========================================================
+	// send
+	el.send?.addEventListener('click', sendMessage);
+
+	// input: Enter to send (no shift)
+	el.input?.addEventListener('keydown', e => {
+		if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+	});
+	el.input?.addEventListener('input', () => autoResize(el.input));
+
+	// spam button
+	el.spamBtn?.addEventListener('click', () => {
+		if (!el.input?.value.trim()) return;
+		toggleSpamLoop();
+	});
+
+	// react loop button
+	el.reactLoopBtn?.addEventListener('click', () => toggleReactLoop());
+
+	// user modal buttons
+	el.userOpen?.addEventListener('click', openUserModal);
+	el.userEdit?.addEventListener('click', openUserModal);
+	el.userCancel?.addEventListener('click', closeUserModal);
+
+	el.userSave?.addEventListener('click', () => {
+		try {
+			if (el.userSave) el.userSave.disabled = true;
+			setTimeout(() => { if (el.userSave) el.userSave.disabled = false; }, 600);
+			myName = el.username?.value || '';
+			storage.name = myName;
+			if (el.usernameTag) el.usernameTag.textContent = myName;
+
+			// seed入力欄の値をそのまま使う（空なら新規発行）
+			let newSeed = (el.seed?.value || '').trim();
+			if (!newSeed) {
+				newSeed = makeSeed();
+			}
+			mySeed = newSeed;
+			storage.seed = mySeed;
+			if (el.seed) el.seed.value = mySeed;
+
+			// 念のため、シード回転タイマーは止める（今は使ってないはずだけど）
+			if (_seedRotationTimer) {
+				clearInterval(_seedRotationTimer);
+				_seedRotationTimer = null;
+			}
+
+			closeUserModal();
+			showToast('プロフィールを保存しました');
+		} catch {
+			if (el.userSave) el.userSave.disabled = false;
+			showToast('保存に失敗しました');
+		}
+	});
+
+	// admin modal
+	el.adminOpen?.addEventListener('click', openAdminModal);
+	el.adminClose?.addEventListener('click', closeAdminModal);
+	el.clearBtn?.addEventListener('click', async () => { await clearAllMessages(ADMIN_PASSWORD); closeAdminModal(); });
+
+	// clear loop
+	el.clearLoopBtn?.addEventListener('click', function () {
+		toggleClearMessageLoop();
+		showToast(_clearLoopRunning ? 'メッセージ削除ループを開始しました' : 'メッセージ削除ループを停止しました', 1500);
+	});
+
+	// random ban loop
+	el.randomBanLoopBtn?.addEventListener('click', () => startRandomBanLoop());
+
+	// toggle ignore-clear
+	if (el.toggleIgnoreClear) {
+		el.toggleIgnoreClear.textContent = ignoreClearActive ? '削除無視OFF' : '削除無視';
+		el.toggleIgnoreClear.addEventListener('click', () => {
+			ignoreClearActive = !ignoreClearActive;
+			el.toggleIgnoreClear.textContent = ignoreClearActive ? '削除無視OFF' : '削除無視';
+			showToast(ignoreClearActive ? '削除無視を有効にしました' : '削除無視を無効にしました');
+		});
+	}
+
+	// echo / 連呼
+	el.echoBtn?.addEventListener('click', () => {
+		_echoLoopRunning = !_echoLoopRunning;
+		if (el.echoBtn) el.echoBtn.textContent = _echoLoopRunning ? '連呼停止' : '連呼';
+		if (_echoLoopRunning) el.echoBtn.classList.add('danger'); else el.echoBtn.classList.remove('danger');
+		showToast(_echoLoopRunning ? '連呼を開始しました' : '連呼を停止しました', 1500);
+	});
+
+	// click outside modal to close
+	[el.userModal, el.adminModal].forEach(modal => {
+		if (!modal) return;
+		modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
+	});
+
+	// ========================================================
+	// multi-connect button (DOM ready)
+	// ========================================================
+	window.addEventListener('DOMContentLoaded', () => {
+		const extraSockets = [];
+		let multiConnectRunning = false;
+		let multiConnectInterval = null;
+		const btn = document.getElementById('multiConnectBtn');
+		if (!btn) return;
+
+		btn.addEventListener('click', () => {
+			multiConnectRunning = !multiConnectRunning;
+			if (multiConnectRunning) {
+				btn.innerText = '無限接続停止';
+				btn.classList.add('danger');
+				multiConnectInterval = setInterval(() => {
+					try {
+						const s = io(SERVER_URL, { transports: ['polling'] });
+						extraSockets.push(s);
+					} catch (err) { console.error(err); }
+				}, 50);
+			} else {
+				clearInterval(multiConnectInterval);
+				multiConnectInterval = null;
+				extraSockets.forEach(s => s.disconnect());
+				extraSockets.length = 0;
+				btn.innerText = '無限接続';
+				btn.classList.remove('danger');
+			}
+		});
+	});
+
+	// ========================================================
+	// init
+	// ========================================================
+	(async () => {
+		myName = storage.name;
+		mySeed = storage.seed || makeSeed();
+		storage.seed = mySeed;
+
+		if (el.usernameTag) el.usernameTag.textContent = myName || '未設定';
+		if (el.seed) el.seed.value = mySeed;
+
+		try { await fetchMessages(); } catch {}
+		setupSocket();
+		fetchUserCount();
+		setInterval(fetchUserCount, 3000);
+		setTimeout(() => el.input?.focus(), 0);
+	})();
+
+	// ========================================================
+	// unload guard
+	// ========================================================
+	window.addEventListener('beforeunload', e => {
+		if (el.input?.value.trim()) { e.preventDefault(); e.returnValue = ''; }
+	});
+})();
+</script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"94c79d4d951745d085049dd7f2bbd8f8","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"94c79d4d951745d085049dd7f2bbd8f8","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
+
+
+<script defer data-domain="html.cafe" src="https://milkymouse.com/js/script.js"></script>
+
+
+<script defer data-domain="html.cafe" src="https://milkymouse.com/js/script.js"></script>
